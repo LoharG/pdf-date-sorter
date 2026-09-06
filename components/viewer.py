@@ -42,11 +42,14 @@ def render_viewer(session: dict) -> None:
             st.rerun()
 
     with col3:
+        if st.session_state.get("_goto_sync_page") != current:
+            st.session_state["goto_page_input"] = current + 1
+            st.session_state["_goto_sync_page"] = current
+
         goto = st.number_input(
             t("go_to_page"),
             min_value=1,
             max_value=page_count,
-            value=current + 1,
             step=1,
             label_visibility="collapsed",
             key="goto_page_input",
@@ -54,6 +57,7 @@ def render_viewer(session: dict) -> None:
         st.caption(f"{t('page_of', current=current + 1, total=page_count)}")
         if goto - 1 != current:
             st.session_state["current_page"] = int(goto) - 1
+            st.session_state["_goto_sync_page"] = int(goto) - 1
             st.rerun()
 
     with col5:
