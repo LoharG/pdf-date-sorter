@@ -12,7 +12,7 @@ STRINGS = {
     "progress": "{assigned} / {total} pages assigned ({pct}%)",
     "sticky_date": "Sticky date: {date}",
     "no_sticky_date": "No date set yet",
-    "date_label": "Date (DD-MM-YYYY)",
+    "date_label": "Date (MM-DD-YYYY)",
     "date_status_explicit": "Explicit",
     "date_status_inherited": "Inherited",
     "date_status_none": "Not assigned",
