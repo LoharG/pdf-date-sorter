@@ -97,8 +97,7 @@ def render_date_panel(session: dict) -> dict:
     if undo_stack:
         if st.button(t("undo"), key="btn_undo"):
             last = undo_stack.pop()
-            session["assignments"][last["page_index"]]["date"] = last["prev_date"]
-            session["assignments"][last["page_index"]]["source"] = last["prev_source"]
+            session["assignments"] = last["assignments_snapshot"]
             save_assignments(session)
             st.session_state["_edit_page"] = None
             st.rerun()
