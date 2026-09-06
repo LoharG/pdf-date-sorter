@@ -23,7 +23,12 @@ def render_date_panel(session: dict) -> dict:
     if st.session_state.get("_edit_page") != current:
         st.session_state["current_date_edit"] = display_date(assignment["date"])
         st.session_state["_edit_page"] = current
+
+    if st.session_state.get("_last_seen_page") != current:
+        # A genuine page change (not just the textbox-refresh reset a same-page
+        # save also triggers) — any warning shown for a different page is stale.
         st.session_state.pop("out_of_order_warning", None)
+        st.session_state["_last_seen_page"] = current
 
     source = assignment["source"]
     if source == "explicit":
