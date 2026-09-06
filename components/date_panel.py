@@ -23,6 +23,7 @@ def render_date_panel(session: dict) -> dict:
     if st.session_state.get("_edit_page") != current:
         st.session_state["current_date_edit"] = display_date(assignment["date"])
         st.session_state["_edit_page"] = current
+        st.session_state.pop("out_of_order_warning", None)
 
     source = assignment["source"]
     if source == "explicit":
