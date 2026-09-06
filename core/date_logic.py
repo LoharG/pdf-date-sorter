@@ -5,11 +5,11 @@ import copy
 
 
 def validate_date(date_str: str) -> tuple[bool, str]:
-    """Parse DD-MM-YYYY. Returns (True, 'YYYY-MM-DD') or (False, error_key)."""
+    """Parse MM-DD-YYYY. Returns (True, 'YYYY-MM-DD') or (False, error_key)."""
     if not date_str or not date_str.strip():
         return False, "invalid_date"
     try:
-        dt = datetime.strptime(date_str.strip(), "%d-%m-%Y")
+        dt = datetime.strptime(date_str.strip(), "%m-%d-%Y")
         return True, dt.strftime("%Y-%m-%d")
     except ValueError:
         parts = date_str.strip().split("-")
