@@ -55,4 +55,7 @@ STRINGS = {
     "confirm_clear_msg": "Are you sure? This will delete all your assignments.",
     "confirm_clear_yes": "Yes, clear",
     "confirm_clear_no": "Cancel",
+    "out_of_order_warning": "This date is earlier than the previous page's date — is that intentional?",
+    "dismiss_warning": "Dismiss",
+    "page_strip_range": "Pages {start}-{end} of {total}",
 }
