@@ -1,3 +1,5 @@
+import copy
+
 import streamlit as st
 
 from core.date_logic import validate_date, display_date, apply_next, apply_backward_edit, get_sticky_date
