@@ -111,3 +111,19 @@ def get_sticky_date(assignments: list[dict], current_idx: int) -> str | None:
         if assignments[i]["date"]:
             return assignments[i]["date"]
     return None
+
+
+def is_suspiciously_out_of_order(prev_iso: str, new_iso: str, threshold_days: int = 3) -> bool:
+    """
+    Heuristic nudge only — never blocks saving.
+    Flags a newly saved date as suspicious if it lands more than
+    threshold_days before the previous page's date, or if the year looks
+    like a 100/1000-year typo (e.g. 1926 instead of 2026).
+    """
+    prev_dt = datetime.strptime(prev_iso, "%Y-%m-%d")
+    new_dt = datetime.strptime(new_iso, "%Y-%m-%d")
+    if (prev_dt - new_dt).days > threshold_days:
+        return True
+    if abs(new_dt.year - prev_dt.year) in (100, 1000):
+        return True
+    return False
