@@ -50,6 +50,13 @@ def render_date_panel(session: dict) -> dict:
     else:
         st.caption(t("no_sticky_date"))
 
+    warning = st.session_state.get("out_of_order_warning")
+    if warning and warning.get("page_index") == current:
+        st.warning(t("out_of_order_warning"))
+        if st.button(t("dismiss_warning"), key="btn_dismiss_warning"):
+            st.session_state.pop("out_of_order_warning", None)
+            st.rerun()
+
     save_clicked = st.button("💾 " + t("save_date"), key="btn_save_date", use_container_width=True)
     if save_clicked:
         st.session_state["next_clicked"] = True
