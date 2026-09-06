@@ -63,9 +63,7 @@ def render_date_panel(session: dict) -> dict:
             else:
                 undo_stack = st.session_state.setdefault("undo_stack", [])
                 undo_stack.append({
-                    "page_index": current,
-                    "prev_date": assignment["date"],
-                    "prev_source": assignment["source"],
+                    "assignments_snapshot": copy.deepcopy(assignments),
                 })
                 if len(undo_stack) > 1:
                     undo_stack.pop(0)
@@ -79,14 +77,16 @@ def render_date_panel(session: dict) -> dict:
                 if is_backward:
                     session["assignments"] = apply_backward_edit(assignments, current, result)
                     st.success(t("date_updated", n=current + 1))
+                    save_assignments(session)
+                    st.session_state["_edit_page"] = None
+                    st.rerun()
                 else:
                     session["assignments"] = apply_next(assignments, current, result)
-
-                save_assignments(session)
-                st.session_state["_edit_page"] = None
-                if current < page_count - 1:
-                    st.session_state["current_page"] = current + 1
-                st.rerun()
+                    save_assignments(session)
+                    st.session_state["_edit_page"] = None
+                    if current < page_count - 1:
+                        st.session_state["current_page"] = current + 1
+                    st.rerun()
         else:
             st.session_state["_edit_page"] = None
             if current < page_count - 1:
