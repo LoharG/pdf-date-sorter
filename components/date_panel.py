@@ -2,7 +2,14 @@ import copy
 
 import streamlit as st
 
-from core.date_logic import validate_date, display_date, apply_next, apply_backward_edit, get_sticky_date
+from core.date_logic import (
+    validate_date,
+    display_date,
+    apply_next,
+    apply_backward_edit,
+    get_sticky_date,
+    is_suspiciously_out_of_order,
+)
 from core.session_manager import save_assignments
 from i18n import t
 
