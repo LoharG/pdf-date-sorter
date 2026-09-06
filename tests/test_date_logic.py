@@ -66,3 +66,70 @@ def test_backward_edit_touches_only_target_page():
     assert assignments[1]["date"] == "2026-01-01"
     assert assignments[2]["date"] == "2026-01-01"
     assert assignments[3]["date"] == "2026-01-01"
+
+
+@pytest.mark.parametrize("raw,expected_iso", [
+    ("05-09-2026", "2026-09-05"),
+    ("5-9-2026", "2026-09-05"),
+    ("05/09/2026", "2026-09-05"),
+    ("5/9/2026", "2026-09-05"),
+    ("05.09.2026", "2026-09-05"),
+    ("5 Sep 2026", "2026-09-05"),
+    ("5 September 2026", "2026-09-05"),
+    ("  05-09-2026  ", "2026-09-05"),
+])
+def test_validate_date_accepts_alternate_formats(raw, expected_iso):
+    ok, result = validate_date(raw)
+    assert ok is True
+    assert result == expected_iso
+
+
+def test_validate_date_is_day_first_not_month_first():
+    # 02/03/2026 must mean 2 March, not 3 February (no US MM/DD support).
+    ok, result = validate_date("02/03/2026")
+    assert ok is True
+    assert result == "2026-03-02"
+
+
+@pytest.mark.parametrize("raw", [
+    "31-02-2026",   # Feb 31 doesn't exist
+    "31/04/2026",   # April has 30 days
+    "32-01-2026",   # no such day
+])
+def test_validate_date_rejects_impossible_calendar_dates(raw):
+    ok, result = validate_date(raw)
+    assert ok is False
+    assert result == "invalid_date_calendar"
+
+
+@pytest.mark.parametrize("raw", [
+    "",
+    "   ",
+    "not a date",
+    "tomorrow",
+    "2026",
+])
+def test_validate_date_rejects_unrecognizable_input(raw):
+    ok, result = validate_date(raw)
+    assert ok is False
+    assert result == "invalid_date"
+
+
+def test_is_suspiciously_out_of_order_flags_large_backward_jump():
+    assert is_suspiciously_out_of_order("2026-09-10", "2026-01-01") is True
+
+
+def test_is_suspiciously_out_of_order_allows_small_backward_jump():
+    assert is_suspiciously_out_of_order("2026-09-10", "2026-09-08") is False
+
+
+def test_is_suspiciously_out_of_order_flags_century_typo():
+    assert is_suspiciously_out_of_order("2026-09-10", "1926-09-10") is True
+
+
+def test_is_suspiciously_out_of_order_flags_millennium_typo():
+    assert is_suspiciously_out_of_order("2026-09-10", "1026-09-10") is True
+
+
+def test_is_suspiciously_out_of_order_allows_forward_progression():
+    assert is_suspiciously_out_of_order("2026-01-01", "2026-06-15") is False
