@@ -2,20 +2,44 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import copy
+import re
+
+# Tried in order; all are day-first to match the app's DD-MM-YYYY convention
+# (no MM/DD support — that would make two-digit-day dates genuinely ambiguous).
+_DATE_FORMATS = [
+    "%d-%m-%Y",   # 05-09-2026
+    "%d/%m/%Y",   # 05/09/2026
+    "%d.%m.%Y",   # 05.09.2026
+    "%d %b %Y",   # 5 Sep 2026
+    "%d %B %Y",   # 5 September 2026
+]
+
+# Loose shape check used only to distinguish "not a date at all" from
+# "looks like a date but the day/month/year values don't form a real calendar
+# date" (e.g. 31-02-2026) so we can show a more specific error message.
+_DATE_SHAPE_RE = re.compile(
+    r"^\d{1,2}\s*[-/.]\s*\d{1,2}\s*[-/.]\s*\d{4}$"
+    r"|^\d{1,2}\s+[A-Za-z]+\s+\d{4}$"
+)
 
 
 def validate_date(date_str: str) -> tuple[bool, str]:
-    """Parse DD-MM-YYYY. Returns (True, 'YYYY-MM-DD') or (False, error_key)."""
+    """Parse a date in DD-MM-YYYY or a few common alternate formats
+    (DD/MM/YYYY, DD.MM.YYYY, "5 Sep 2026", "5 September 2026").
+    Returns (True, 'YYYY-MM-DD') or (False, error_key).
+    """
     if not date_str or not date_str.strip():
         return False, "invalid_date"
-    try:
-        dt = datetime.strptime(date_str.strip(), "%d-%m-%Y")
-        return True, dt.strftime("%Y-%m-%d")
-    except ValueError:
-        parts = date_str.strip().split("-")
-        if len(parts) == 3:
-            return False, "invalid_date_calendar"
-        return False, "invalid_date"
+    cleaned = date_str.strip()
+    for fmt in _DATE_FORMATS:
+        try:
+            dt = datetime.strptime(cleaned, fmt)
+            return True, dt.strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    if _DATE_SHAPE_RE.match(cleaned):
+        return False, "invalid_date_calendar"
+    return False, "invalid_date"
 
 
 def display_date(iso_date: str | None) -> str:
