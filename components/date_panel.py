@@ -61,11 +61,11 @@ def render_date_panel(session: dict) -> dict:
                 if len(undo_stack) > 1:
                     undo_stack.pop(0)
 
-                max_assigned = max(
-                    (i for i, a in enumerate(assignments) if a["date"] is not None),
-                    default=0
+                max_explicit = max(
+                    (i for i, a in enumerate(assignments) if a["source"] == "explicit"),
+                    default=-1
                 )
-                is_backward = assignment["date"] is not None and current < max_assigned
+                is_backward = assignment["date"] is not None and current < max_explicit
 
                 if is_backward:
                     session["assignments"] = apply_backward_edit(assignments, current, result)
