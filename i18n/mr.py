@@ -38,7 +38,7 @@ STRINGS = {
     "upload_password": "पासवर्ड-संरक्षित PDF समर्थित नाहीत.",
     "upload_loading": "PDF लोड होत आहे...",
     "page_render_error": "पान {n} दाखवता आले नाही. मागे-पुढे नेव्हिगेट करून पुन्हा प्रयत्न करा.",
-    "invalid_date": "कृपया वैध तारीख प्रविष्ट करा (DD-MM-YYYY).",
+    "invalid_date": "कृपया वैध तारीख प्रविष्ट करा (MM-DD-YYYY).",
     "invalid_date_calendar": "ही तारीख कॅलेंडरमध्ये अस्तित्वात नाही.",
     "missing_assignments": "{n} पानांना तारीख नाही. सॉर्ट करण्यापूर्वी सर्व तारखा नियुक्त करा.",
     "import_fingerprint_mismatch": "हे नियुक्ती फाइल वेगळ्या PDF साठी आहे.",
