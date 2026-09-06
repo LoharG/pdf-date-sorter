@@ -86,12 +86,12 @@ def render_date_panel(session: dict) -> dict:
                     session["assignments"] = apply_next(assignments, current, result)
                     save_assignments(session)
                     st.session_state["_edit_page"] = None
-                    if current < page_count - 1:
+                    if not explicit_save and current < page_count - 1:
                         st.session_state["current_page"] = current + 1
                     st.rerun()
         else:
             st.session_state["_edit_page"] = None
-            if current < page_count - 1:
+            if not explicit_save and current < page_count - 1:
                 st.session_state["current_page"] = current + 1
             st.rerun()
 
