@@ -12,7 +12,7 @@ STRINGS = {
     "progress": "{assigned} / {total} पाने नियुक्त ({pct}%)",
     "sticky_date": "चिकट तारीख: {date}",
     "no_sticky_date": "अद्याप तारीख नाही",
-    "date_label": "तारीख (DD-MM-YYYY)",
+    "date_label": "तारीख (MM-DD-YYYY)",
     "date_status_explicit": "स्पष्ट",
     "date_status_inherited": "वारशाने मिळालेली",
     "date_status_none": "नियुक्त नाही",
