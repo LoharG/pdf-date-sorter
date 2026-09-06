@@ -5,6 +5,7 @@ from components.uploader import render_uploader
 from components.viewer import render_viewer
 from components.date_panel import render_date_panel
 from components.sort_panel import render_sort_panel
+from components.page_strip import render_page_strip
 from i18n import t
 
 st.set_page_config(
