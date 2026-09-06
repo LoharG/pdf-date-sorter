@@ -55,7 +55,4 @@ STRINGS = {
     "confirm_clear_msg": "आपण खात्री करता? हे सर्व तारखा हटवेल.",
     "confirm_clear_yes": "होय, साफ करा",
     "confirm_clear_no": "रद्द करा",
-    "out_of_order_warning": "ही तारीख मागील पानाच्या तारखेपेक्षा आधीची आहे — हे हेतुपुरस्सर आहे का?",
-    "dismiss_warning": "बंद करा",
-    "page_strip_range": "पाने {start}-{end} पैकी {total}",
 }

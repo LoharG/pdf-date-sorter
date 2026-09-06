@@ -2,14 +2,7 @@ import copy
 
 import streamlit as st
 
-from core.date_logic import (
-    validate_date,
-    display_date,
-    apply_next,
-    apply_backward_edit,
-    get_sticky_date,
-    is_suspiciously_out_of_order,
-)
+from core.date_logic import validate_date, display_date, apply_next, apply_backward_edit, get_sticky_date
 from core.session_manager import save_assignments
 from i18n import t
 
@@ -23,12 +16,6 @@ def render_date_panel(session: dict) -> dict:
     if st.session_state.get("_edit_page") != current:
         st.session_state["current_date_edit"] = display_date(assignment["date"])
         st.session_state["_edit_page"] = current
-
-    if st.session_state.get("_last_seen_page") != current:
-        # A genuine page change (not just the textbox-refresh reset a same-page
-        # save also triggers) — any warning shown for a different page is stale.
-        st.session_state.pop("out_of_order_warning", None)
-        st.session_state["_last_seen_page"] = current
 
     source = assignment["source"]
     if source == "explicit":
@@ -54,13 +41,6 @@ def render_date_panel(session: dict) -> dict:
         st.caption(t("sticky_date", date=display_date(sticky)))
     else:
         st.caption(t("no_sticky_date"))
-
-    warning = st.session_state.get("out_of_order_warning")
-    if warning and warning.get("page_index") == current:
-        st.warning(t("out_of_order_warning"))
-        if st.button(t("dismiss_warning"), key="btn_dismiss_warning"):
-            st.session_state.pop("out_of_order_warning", None)
-            st.rerun()
 
     save_clicked = st.button("💾 " + t("save_date"), key="btn_save_date", use_container_width=True)
     if save_clicked:
@@ -95,10 +75,6 @@ def render_date_panel(session: dict) -> dict:
                     default=-1
                 )
                 is_backward = assignment["date"] is not None and current < max_explicit
-
-                if current > 0 and assignments[current - 1]["date"]:
-                    if is_suspiciously_out_of_order(assignments[current - 1]["date"], result):
-                        st.session_state["out_of_order_warning"] = {"page_index": current}
 
                 if is_backward:
                     session["assignments"] = apply_backward_edit(assignments, current, result)
