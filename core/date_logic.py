@@ -42,12 +42,12 @@ def apply_next(assignments: list[dict], current_idx: int, date_iso: str) -> list
     a[current_idx]["source"] = "explicit"
     a[current_idx]["updated_at"] = now
     for next_idx in range(current_idx + 1, len(a)):
-        if a[next_idx]["date"] is None:
+        if a[next_idx]["source"] == "explicit":
+            date_iso = a[next_idx]["date"]
+        else:
             a[next_idx]["date"] = date_iso
             a[next_idx]["source"] = "inherited"
             a[next_idx]["updated_at"] = now
-        elif a[next_idx]["source"] == "explicit":
-            date_iso = a[next_idx]["date"]
     return a
 
 
