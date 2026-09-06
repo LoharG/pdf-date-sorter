@@ -38,7 +38,7 @@ STRINGS = {
     "upload_password": "Password-protected PDFs are not supported.",
     "upload_loading": "Loading PDF...",
     "page_render_error": "Could not render page {n}. Try navigating away and back.",
-    "invalid_date": "Please enter a valid date (DD-MM-YYYY).",
+    "invalid_date": "Please enter a valid date (MM-DD-YYYY).",
     "invalid_date_calendar": "This date does not exist in the calendar.",
     "missing_assignments": "{n} pages have no date assigned. Please assign all dates before sorting.",
     "import_fingerprint_mismatch": "This assignment file belongs to a different PDF and cannot be imported.",
