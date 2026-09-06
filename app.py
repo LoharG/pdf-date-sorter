@@ -94,3 +94,6 @@ else:
         updated_session = render_date_panel(session)
         updated_session = render_sort_panel(updated_session)
         st.session_state["session"] = updated_session
+
+    st.divider()
+    render_page_strip(session)
