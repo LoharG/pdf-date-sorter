@@ -50,7 +50,7 @@ STRINGS = {
     "clear_yes": "Yes, clear session",
     "clear_no": "Cancel",
     "language": "Language",
-    "date_placeholder": "DD-MM-YYYY",
+    "date_placeholder": "MM-DD-YYYY",
     "session_expired": "Session not found or expired. Please upload a new PDF.",
     "confirm_clear_msg": "Are you sure? This will delete all your assignments.",
     "confirm_clear_yes": "Yes, clear",
