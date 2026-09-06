@@ -50,7 +50,7 @@ STRINGS = {
     "clear_yes": "होय, साफ करा",
     "clear_no": "रद्द करा",
     "language": "भाषा",
-    "date_placeholder": "DD-MM-YYYY",
+    "date_placeholder": "MM-DD-YYYY",
     "session_expired": "सत्र सापडले नाही किंवा कालबाह्य झाले. कृपया नवीन PDF अपलोड करा.",
     "confirm_clear_msg": "आपण खात्री करता? हे सर्व तारखा हटवेल.",
     "confirm_clear_yes": "होय, साफ करा",
