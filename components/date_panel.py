@@ -98,8 +98,12 @@ def render_date_panel(session: dict) -> dict:
                 is_backward = assignment["date"] is not None and current < max_explicit
 
                 if current > 0 and assignments[current - 1]["date"]:
-                    if is_suspiciously_out_of_order(assignments[current - 1]["date"], result):
+                    suspicious = is_suspiciously_out_of_order(assignments[current - 1]["date"], result)
+                    print(f"DEBUG check: current={current} prev_date={assignments[current-1]['date']} result={result} suspicious={suspicious}", flush=True)
+                    if suspicious:
                         st.session_state["out_of_order_warning"] = {"page_index": current}
+                else:
+                    print(f"DEBUG check skipped: current={current}", flush=True)
 
                 if is_backward:
                     session["assignments"] = apply_backward_edit(assignments, current, result)
