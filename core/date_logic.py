@@ -19,12 +19,12 @@ def validate_date(date_str: str) -> tuple[bool, str]:
 
 
 def display_date(iso_date: str | None) -> str:
-    """Convert YYYY-MM-DD to DD-MM-YYYY for display. None -> ''."""
+    """Convert YYYY-MM-DD to MM-DD-YYYY for display. None -> ''."""
     if not iso_date:
         return ""
     try:
         dt = datetime.strptime(iso_date, "%Y-%m-%d")
-        return dt.strftime("%d-%m-%Y")
+        return dt.strftime("%m-%d-%Y")
     except ValueError:
         return ""
 
