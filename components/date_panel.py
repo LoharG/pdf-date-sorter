@@ -45,17 +45,19 @@ def render_date_panel(session: dict) -> dict:
     save_clicked = st.button("💾 " + t("save_date"), key="btn_save_date", use_container_width=True)
     if save_clicked:
         st.session_state["next_clicked"] = True
+        st.session_state["explicit_save"] = True
 
     if st.session_state.pop("next_clicked", False):
+        explicit_save = st.session_state.pop("explicit_save", False)
         typed = st.session_state.get("current_date_edit", "").strip()
         effective = typed or display_date(assignment["date"])
         if effective:
             ok, result = validate_date(effective)
             if not ok:
                 st.error(t(result))
-            elif result == assignment["date"]:
-                # Value unchanged (e.g. Next pressed on an already-dated page) —
-                # navigate without touching the assignment's source/status.
+            elif result == assignment["date"] and not explicit_save:
+                # Value unchanged AND this was passive navigation (Next), not an
+                # explicit Save click — navigate without touching the status.
                 st.session_state["_edit_page"] = None
                 if current < page_count - 1:
                     st.session_state["current_page"] = current + 1
