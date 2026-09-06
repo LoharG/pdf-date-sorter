@@ -3,7 +3,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from core.date_logic import apply_next, apply_backward_edit
+import pytest
+
+from core.date_logic import apply_next, apply_backward_edit, validate_date, is_suspiciously_out_of_order
 
 
 def make_assignments(n: int) -> list[dict]:
