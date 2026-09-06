@@ -51,6 +51,13 @@ def render_date_panel(session: dict) -> dict:
             ok, result = validate_date(effective)
             if not ok:
                 st.error(t(result))
+            elif result == assignment["date"]:
+                # Value unchanged (e.g. Next pressed on an already-dated page) —
+                # navigate without touching the assignment's source/status.
+                st.session_state["_edit_page"] = None
+                if current < page_count - 1:
+                    st.session_state["current_page"] = current + 1
+                st.rerun()
             else:
                 undo_stack = st.session_state.setdefault("undo_stack", [])
                 undo_stack.append({
