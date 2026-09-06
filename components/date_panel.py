@@ -56,6 +56,7 @@ def render_date_panel(session: dict) -> dict:
         st.caption(t("no_sticky_date"))
 
     warning = st.session_state.get("out_of_order_warning")
+    print(f"DEBUG render: current={current} last_seen={st.session_state.get('_last_seen_page')} warning={warning}", flush=True)
     if warning and warning.get("page_index") == current:
         st.warning(t("out_of_order_warning"))
         if st.button(t("dismiss_warning"), key="btn_dismiss_warning"):
