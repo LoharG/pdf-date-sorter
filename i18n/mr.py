@@ -62,7 +62,7 @@ STRINGS = {
     "date_for_page": "पान {n} साठी तारीख",
     "using_date_from_page": "पान {n} वरून {date} वापरत आहे.",
     "find_date_here": "या पानावरील तारीख शोधा आणि येथे टाका.",
-    "backward_edit_notice": "हे आधीचे पान संपादित केल्याने फक्त हेच पान बदलेल.",
+    "backward_edit_notice": "ही तारीख बदलल्याने फक्त हेच पान अद्ययावत होईल.",
     "save_and_next": "जतन करा आणि पुढे",
     "saving_status": "जतन होत आहे…",
     "saved_status": "जतन झाले",
@@ -76,4 +76,9 @@ STRINGS = {
     "legend_current": "सध्याचे पान",
     "page_strip_range": "पाने {start}-{end} पैकी {total}",
     "next_unassigned": "पुढील अनियुक्त पान",
+    "hero_subtitle": "पाने पहा. तारखा द्या. कालानुक्रमे क्रमबद्ध केलेली PDF डाउनलोड करा.",
+    "hero_guidance": "तुम्ही क्रमाने पाने पाहत असताना, तुम्ही टाकलेली तारीख पुढील पानांवर आपोआप वापरली जाते, जोपर्यंत तुम्ही वेगळी तारीख टाकत नाही.",
+    "pause_animation": "⏸ अ‍ॅनिमेशन थांबवा",
+    "resume_animation": "▶ अ‍ॅनिमेशन सुरू करा",
+    "hero_animation_label": "सजावटीची अ‍ॅनिमेटेड पार्श्वभूमी",
 }

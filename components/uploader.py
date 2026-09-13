@@ -4,20 +4,37 @@ import streamlit as st
 
 from core.pdf_handler import validate_pdf, save_uploaded_pdf
 from core.session_manager import create_session, save_assignments, compute_fingerprint
+from components.hero import render_blackhole_hero
 from i18n import t
 
 MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", "200"))
 
 
 def render_uploader() -> None:
-    st.title(t("app_title"))
-    st.write(t("upload_prompt"))
+    left_col, right_col = st.columns([3, 2])
 
-    uploaded = st.file_uploader(
-        t("upload_drag"),
-        type=["pdf"],
-        label_visibility="collapsed",
-    )
+    with left_col:
+        st.markdown(f"<div class='hero-title'>{t('app_title')}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='hero-subtitle'>{t('hero_subtitle')}</div>", unsafe_allow_html=True)
+
+        uploaded = st.file_uploader(
+            t("upload_drag"),
+            type=["pdf"],
+            label_visibility="collapsed",
+        )
+
+        st.markdown(f"<div class='hero-guidance'>{t('hero_guidance')}</div>", unsafe_allow_html=True)
+
+        paused = st.session_state.get("hero_paused", False)
+        if st.button(
+            t("resume_animation") if paused else t("pause_animation"),
+            key="btn_hero_pause",
+        ):
+            st.session_state["hero_paused"] = not paused
+            st.rerun()
+
+    with right_col:
+        render_blackhole_hero(paused=st.session_state.get("hero_paused", False))
 
     if uploaded is None:
         return

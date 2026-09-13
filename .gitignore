@@ -7,3 +7,7 @@ tmp/*
 .coverage
 htmlcov/
 .pytest_cache/
+frontend/blackhole/node_modules/
+# dist/ IS committed deliberately — Streamlit Cloud only runs `pip install`,
+# there is no npm build step at deploy time, so the built bundle must ship
+# in the repo. See DEPLOYMENT.md.

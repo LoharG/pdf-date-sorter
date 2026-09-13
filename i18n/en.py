@@ -62,7 +62,7 @@ STRINGS = {
     "date_for_page": "Date for page {n}",
     "using_date_from_page": "Using {date} from page {n}.",
     "find_date_here": "Find the date on this page and enter it here.",
-    "backward_edit_notice": "Editing this earlier page changes this page only.",
+    "backward_edit_notice": "Changing this date updates this page only.",
     "save_and_next": "Save & Next",
     "saving_status": "Saving…",
     "saved_status": "Saved",
@@ -76,4 +76,9 @@ STRINGS = {
     "legend_current": "Current page",
     "page_strip_range": "Pages {start}-{end} of {total}",
     "next_unassigned": "Next unassigned page",
+    "hero_subtitle": "Review pages. Assign dates. Download a chronologically sorted PDF.",
+    "hero_guidance": "As you review pages in order, the date you enter carries forward automatically until you enter a different one.",
+    "pause_animation": "⏸ Pause animation",
+    "resume_animation": "▶ Resume animation",
+    "hero_animation_label": "Decorative animated background",
 }

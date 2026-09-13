@@ -1,4 +1,9 @@
-streamlit>=1.35.0
+# Pinned to the version this was built and tested against, which has
+# st.iframe (used by the hero component). The true minimum version that
+# introduced st.iframe was not independently verified — this floor is set to
+# what's confirmed working, not a researched minimum, deliberately erring
+# stricter rather than risk an AttributeError on an untested older version.
+streamlit>=1.63.0
 PyMuPDF>=1.24.0
 pytest>=8.0.0
 pytest-cov>=5.0.0
