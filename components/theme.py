@@ -356,6 +356,14 @@ div[data-testid="stAlertContainer"] {
     color: var(--text-secondary);
 }
 
+/* Upload-screen content column: kept to a readable measure instead of
+   stretching full-width now that the lantern background spans the whole
+   page (previously this space held a separate two-column animation
+   panel). */
+.st-key-hero_content {
+    max-width: 640px;
+}
+
 .hero-title {
     font-size: clamp(1.8rem, 3.2vw, 2.6rem);
     font-weight: 700;

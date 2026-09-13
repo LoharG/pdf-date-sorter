@@ -1,19 +1,59 @@
+import base64
 import os
+from pathlib import Path
 
 import streamlit as st
 
 from core.pdf_handler import validate_pdf, save_uploaded_pdf
 from core.session_manager import create_session, save_assignments, compute_fingerprint
-from components.hero import render_blackhole_hero
 from i18n import t
 
 MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", "200"))
 
+_LANTERN_BG_PATH = Path(__file__).resolve().parent.parent / "assets" / "lantern-bg.jpg"
+
+
+@st.cache_resource
+def _load_lantern_bg_b64() -> str:
+    return base64.b64encode(_LANTERN_BG_PATH.read_bytes()).decode("ascii")
+
 
 def render_uploader() -> None:
-    left_col, right_col = st.columns([3, 2])
+    # Marker element + a :has() rule below scope the background to only this
+    # screen's .stApp — the review workspace never renders this marker, so it
+    # never picks up the rule or pays for the image payload.
+    st.markdown('<div class="upload-lantern-marker"></div>', unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <style>
+        .stApp:has(.upload-lantern-marker) {{
+            background-image: url("data:image/jpeg;base64,{_load_lantern_bg_b64()}");
+            background-repeat: no-repeat;
+            background-position: center center;
+            /* contain (not cover): guarantees the whole lantern stays visible
+               on any laptop viewport instead of risking it being cropped out
+               by an aspect-ratio mismatch. The image's own background is
+               solid black, matched by background-color below so the
+               letterboxed edges blend in rather than showing a seam. */
+            background-size: contain;
+            background-color: #000000;
+        }}
+        /* stAppViewContainer and stHeader each paint their own opaque
+           background-color (set globally in theme.py) directly on top of
+           .stApp, fully hiding whatever is behind them — confirmed via
+           computed-style inspection, not assumed. Made transparent only
+           here so the lantern actually shows through instead of being
+           painted over. */
+        .stApp:has(.upload-lantern-marker) [data-testid="stAppViewContainer"],
+        .stApp:has(.upload-lantern-marker) [data-testid="stHeader"] {{
+            background-color: transparent !important;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    with left_col:
+    with st.container(key="hero_content"):
         st.markdown(f"<div class='hero-title'>{t('app_title')}</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='hero-subtitle'>{t('hero_subtitle')}</div>", unsafe_allow_html=True)
 
@@ -24,17 +64,6 @@ def render_uploader() -> None:
         )
 
         st.markdown(f"<div class='hero-guidance'>{t('hero_guidance')}</div>", unsafe_allow_html=True)
-
-        paused = st.session_state.get("hero_paused", False)
-        if st.button(
-            t("resume_animation") if paused else t("pause_animation"),
-            key="btn_hero_pause",
-        ):
-            st.session_state["hero_paused"] = not paused
-            st.rerun()
-
-    with right_col:
-        render_blackhole_hero(paused=st.session_state.get("hero_paused", False))
 
     if uploaded is None:
         return
