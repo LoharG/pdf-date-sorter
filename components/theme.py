@@ -31,6 +31,7 @@ _CSS = """
     --tooltip-text: #F8FAFC;
     --tooltip-border: #475569;
     --focus-ring: #FFB36B;
+    --viewer-surface: #2B2F38;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -354,6 +355,44 @@ div[data-testid="stAlertContainer"] {
 .strip-legend {
     font-size: 0.8rem;
     color: var(--text-secondary);
+}
+
+/* Collapsible page navigator: Streamlit's own st.sidebar already provides
+   the collapse/expand behavior natively (a supported API, not a custom
+   CSS-driven toggle) — this just narrows its default width and gives its
+   contents their own scroll region, independent of the main workspace. */
+[data-testid="stSidebar"] {
+    min-width: 160px !important;
+    max-width: 200px !important;
+    /* Streamlit's default sidebar background is a light grey — confirmed
+       via computed style (rgb(240,242,246)) — while the rest of this app's
+       CSS already makes text inside it light-colored for the dark theme,
+       producing the same light-on-light unreadability class of bug already
+       fixed once for tooltips. */
+    background-color: var(--panel-bg) !important;
+    border-right: 1px solid var(--border);
+}
+[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+    padding-top: 16px;
+}
+.sidebar-nav-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.sidebar-thumb {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin-top: 8px;
+    margin-bottom: 2px;
+    background: #FFFFFF;
+}
+.workspace-status-line {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    padding: 4px 2px 0;
 }
 
 /* Upload-screen content column: kept to a readable measure instead of

@@ -6,7 +6,7 @@ from components.uploader import render_uploader
 from components.viewer import render_viewer
 from components.date_panel import render_date_panel, render_date_panel_secondary
 from components.sort_panel import render_sort_panel
-from components.page_strip import render_page_strip
+from components.sidebar_nav import render_sidebar_nav
 from i18n import t
 
 st.set_page_config(
@@ -117,6 +117,9 @@ else:
     session = st.session_state["session"]
     st.query_params["session"] = st.session_state["session_id"]
 
+    with st.sidebar:
+        render_sidebar_nav(session)
+
     left_col, right_col = st.columns([3, 1])
     with left_col:
         render_viewer(session)
@@ -127,7 +130,19 @@ else:
             updated_session = render_sort_panel(updated_session)
         st.session_state["session"] = updated_session
 
-    render_page_strip(session)
+    # Thin status line only — the large multirow page-button grid that used
+    # to live here moved into the collapsible sidebar (components/
+    # sidebar_nav.py), which also gives the page list its own scroll area
+    # instead of consuming vertical space in the main workspace.
+    page_count = updated_session["page_count"]
+    current = st.session_state.get("current_page", 0)
+    assigned = sum(1 for a in updated_session["assignments"] if a["date"] is not None)
+    pct = int(assigned / page_count * 100) if page_count else 0
+    st.markdown(
+        f"<div class='workspace-status-line'>{t('page_of', current=current + 1, total=page_count)}"
+        f" &nbsp;·&nbsp; {t('progress', assigned=assigned, total=page_count, pct=pct)}</div>",
+        unsafe_allow_html=True,
+    )
 
     st.markdown(
         """

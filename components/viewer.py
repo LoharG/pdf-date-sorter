@@ -1,4 +1,5 @@
 import base64
+import struct
 from pathlib import Path
 
 import streamlit as st
@@ -46,8 +47,26 @@ def _load_page_image(session: dict, page_index: int, dpi: int) -> bytes:
     return cache[cache_key]
 
 
+def _png_dimensions(png_bytes: bytes) -> tuple[int, int]:
+    """
+    Read width/height straight out of the PNG's IHDR chunk (bytes 16-24,
+    big-endian) instead of pulling in an image-decoding dependency just for
+    two integers we already have on the encoder side. Fixed offset is safe
+    here because fitz's pixmap.tobytes("png") always emits a standard
+    8-byte signature + IHDR-first PNG.
+    """
+    w, h = struct.unpack(">II", png_bytes[16:24])
+    return w, h
+
+
 def _init_zoom_state() -> None:
-    st.session_state.setdefault("zoom_mode", "fit_page")
+    # Fit width, not fit page: opening on fit_page was the direct cause of
+    # "the document looks tiny" reports — a portrait page fit into a wide
+    # short viewer is width-constrained by the SHORTER dimension, shrinking
+    # it far more than a reader expects on first look. Fit width instead
+    # matches how a page is actually being read (top-to-bottom, one column),
+    # letting it scroll vertically inside the viewer instead.
+    st.session_state.setdefault("zoom_mode", "fit_width")
     st.session_state.setdefault("zoom_percent", 100)
 
 
@@ -97,22 +116,32 @@ def render_viewer(session: dict) -> None:
             st.session_state["zoom_percent"] = max(_MIN_ZOOM, zoom_percent - _ZOOM_STEP)
             st.rerun()
     with z2:
+        # fit_width/fit_page are viewport-relative — the resulting on-screen
+        # scale isn't a single Python-known number (it depends on the live
+        # browser width/height), so the mode name is shown instead of a
+        # guessed percentage. Custom zoom's percentage IS exact: it's the
+        # same value the DPI in _render_dpi was computed from.
         label = f"{zoom_percent}%" if zoom_mode == "custom" else t(zoom_mode)
-        st.markdown(f"<div style='text-align:center;padding-top:10px;font-size:0.85rem;color:var(--text-secondary);white-space:nowrap;'>{label}</div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div style='text-align:center;padding-top:10px;"
+            "font-size:0.85rem;color:var(--text-secondary);white-space:nowrap;'>"
+            f"{label}</div>",
+            unsafe_allow_html=True,
+        )
     with z3:
         if st.button("+", key="btn_zoom_in", use_container_width=True, help=t("zoom_in")):
             st.session_state["zoom_mode"] = "custom"
             st.session_state["zoom_percent"] = min(_MAX_ZOOM, zoom_percent + _ZOOM_STEP)
             st.rerun()
     with z4:
-        if st.button(t("fit_page"), key="btn_fit_page", use_container_width=True,
-                     type="primary" if zoom_mode == "fit_page" else "secondary"):
-            st.session_state["zoom_mode"] = "fit_page"
-            st.rerun()
-    with z5:
         if st.button(t("fit_width"), key="btn_fit_width", use_container_width=True,
                      type="primary" if zoom_mode == "fit_width" else "secondary"):
             st.session_state["zoom_mode"] = "fit_width"
+            st.rerun()
+    with z5:
+        if st.button(t("fit_page"), key="btn_fit_page", use_container_width=True,
+                     type="primary" if zoom_mode == "fit_page" else "secondary"):
+            st.session_state["zoom_mode"] = "fit_page"
             st.rerun()
 
     dpi = _render_dpi(zoom_mode, zoom_percent)
@@ -126,101 +155,94 @@ def render_viewer(session: dict) -> None:
 
 def _render_scrollable_image(img_bytes: bytes, zoom_mode: str, page_index: int) -> None:
     b64 = base64.b64encode(img_bytes).decode("ascii")
+    nat_w, nat_h = _png_dimensions(img_bytes)
 
-    if zoom_mode == "fit_page":
-        # Smaller-of-width-or-height fit. Tried max-height:100%/max-width:100%
-        # first (leaving width/height:auto to resolve from whichever bound), which
-        # is the textbook approach — but verified empirically it does not work
-        # here: max-height:100% failed to resolve against the flex container's
-        # definite height at all (rendered image came out ~3x the container's
-        # height, confirmed via getBoundingClientRect before this fix). This is
-        # a known Chromium gotcha with percentage max-height inside a flex
-        # item. object-fit:contain on a box explicitly sized to 100%/100% of
-        # the container does the same "min(width_ratio, height_ratio)" fit
-        # without depending on that percentage-resolution edge case.
-        img_style = "width:100%; height:100%; object-fit:contain;"
-    elif zoom_mode == "fit_width":
-        img_style = "width:100%; height:auto;"
+    # Sized entirely in CSS, deliberately without any JS: an earlier attempt
+    # computed the fitted box with a <script> tag (inert — Streamlit injects
+    # st.markdown HTML via innerHTML, and the HTML spec never executes a
+    # script inserted that way) and then with an onload="" attribute
+    # (stripped outright — Streamlit's markdown sanitizer removes inline
+    # event-handler attributes from unsafe_allow_html content). Both
+    # confirmed empirically, not assumed. CSS also has the advantage of
+    # recalculating for free on any resize or sidebar collapse, with no
+    # ResizeObserver needed.
+    if zoom_mode == "fit_width":
+        # Aspect ratio preserved by the browser's standard width:100% +
+        # height:auto scaling — the wrap shrink-wraps to whatever height
+        # that resolves to, so its shadow/border hug the true page edges.
+        wrap_style = "width:100%;"
+        img_style = "display:block; width:100%; height:auto;"
+    elif zoom_mode == "fit_page":
+        # aspect-ratio (a known exact value from the rendered PNG, not
+        # guessed) + max-width/max-height:100% is the modern-CSS equivalent
+        # of min(width_ratio, height_ratio): the browser picks the largest
+        # box under that ratio that still fits both bounds. Needs the
+        # ancestor chain to have a DEFINITE height for the percentage to
+        # resolve against — handled by the :has() rule below, same fix
+        # this codebase already needed for the old object-fit approach.
+        wrap_style = (
+            f"aspect-ratio:{nat_w}/{nat_h}; max-width:100%; max-height:100%; "
+            "width:auto; height:auto;"
+        )
+        img_style = "display:block; width:100%; height:100%;"
     else:
-        # Custom zoom (e.g. 150%): rendered at a proportionally higher DPI
-        # (see _render_dpi) so it should display at its natural pixel size,
-        # exceeding the container and triggering horizontal/vertical scroll
-        # once larger than it. Streamlit applies its own default
-        # `img { max-width: 100% }` to any image rendered via st.markdown
-        # (confirmed via matched-rules inspection) — harmless for fit_page/
-        # fit_width above since their own width:100% already matches it, but
-        # it silently capped every custom zoom level back down to the
-        # container's width. Overridden here only for this mode.
-        img_style = "max-width: none;"
+        # Custom zoom: rendered at a DPI matching the chosen percentage
+        # already (see _render_dpi), so the wrap is pinned to that exact
+        # pixel size — enlarging further here would just blur a bitmap
+        # instead of asking Python to re-render at the right resolution.
+        wrap_style = f"width:{nat_w}px; height:{nat_h}px;"
+        img_style = "display:block; width:100%; height:100%;"
 
-    # Key includes the page index deliberately: st.container(key=...) with a
-    # STABLE key persists the same underlying DOM node across reruns (React
-    # reconciliation matching by key) — including its scroll position, which
-    # verified as NOT resetting to top on page change with a fixed key. A
-    # per-page key makes it a genuinely different element when the page
-    # changes, forcing a real unmount/remount, which naturally starts a
-    # fresh scroll position at 0. The CSS below matches on a class-substring
-    # selector accordingly, since the literal class name now varies by page.
     with st.container(key=f"pdf_viewer_container_{page_index}"):
         st.markdown(
-            f"<img src='data:image/png;base64,{b64}' style='{img_style}' />",
+            f"""
+            <div class="pdf-sheet-wrap" style="{wrap_style}">
+                <img src="data:image/png;base64,{b64}" style="{img_style}" />
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
     st.markdown(
         f"""
         <style>
+        /* Viewer surface: dark neutral grey, distinct from the white page
+           sitting on it — previously this container's own background WAS
+           white, so a letterboxed page just looked like a smaller white
+           rectangle floating inside a bigger white rectangle, reported as
+           "the document appears inside a wide white rectangle". Confirmed
+           via computed-style inspection before this fix (the container
+           painted #FFFFFF at full width/height regardless of the actual
+           fitted image size). */
         [class*="st-key-pdf_viewer_container_"] {{
-            /* Two layered Streamlit defaults had to be overridden here, found
-               by inspecting matched CSS rules and computed styles rather than
-               assumed:
-               1. st.container(key=...) also carries Streamlit's own generated
-                  st-emotion-cache-* class on the same element, which sets
-                  height:auto — !important on our own height rule handles that
-                  half.
-               2. That same generated class ALSO sets `flex: 1 1 0%`, because
-                  this element is itself a flex ITEM inside its parent's
-                  column-flex layout. In flexbox, flex-basis/flex-grow govern
-                  an item's main-axis size and can silently override an
-                  explicit height even with !important on the height property
-                  — they're different properties, so no cascade conflict ever
-                  triggers, the flex algorithm just wins. Pinning flex to
-                  `none` here stops it from being grown/shrunk by its parent
-                  so the explicit height actually takes effect. */
             flex: none !important;
             height: calc(100vh - {_VIEWER_HEIGHT_OFFSET_PX}px) !important;
             min-height: 260px !important;
             overflow: auto;
-            border: 1px solid #E2E8F0;
+            border: 1px solid var(--border);
             border-radius: 12px;
-            background: #FFFFFF;
-            padding: 8px;
-            text-align: center;
+            background: var(--viewer-surface);
+            padding: 20px;
         }}
-        /* fit_page's height:100% (needed for object-fit:contain to do the
-           min(width_ratio, height_ratio) fit) has to survive a percentage-
-           height chain down through several layers Streamlit wraps the
-           markdown-rendered <img> in — stElementContainer, stMarkdown, an
-           inner wrapper div — none of which have a defined height by
-           default, so they resolve to auto/content-size (i.e. the image's
-           own intrinsic size) and the percentage chain breaks before ever
-           reaching the img. Confirmed by walking the actual parent chain:
-           our container correctly computed to 398px, but every layer
-           between it and the <img> reported ~1137px (content-driven), so
-           height:100% on the img itself had nothing valid to resolve
-           against and silently fell back to auto. Naming each intermediate
-           layer individually (stElementContainer, stMarkdown,
-           stMarkdownContainer) fixed some but not all of them — there's at
-           least one more with no stable class or testid at all — so instead
-           of an increasingly fragile per-layer list, every div descendant
-           in this scoped chain gets height:100% with !important (needed:
-           Streamlit's own generated classes set explicit non-important
-           heights on some of these same elements). Safe here specifically
-           because this container holds a single unbroken vertical chain
-           down to one <img> — there are no sibling branches this could
-           mis-size. */
-        [class*="st-key-pdf_viewer_container_"] div {{
+        /* Every wrapper Streamlit inserts between the container and our sheet
+           div becomes a centering flex row with a definite height (needed
+           for fit_page's max-height:100% to resolve at all) — rather than
+           chasing down each wrapper's stable testid individually, which
+           proved fragile last time. :has() without a direct-child
+           combinator matches every ancestor level at once. */
+        [class*="st-key-pdf_viewer_container_"] div:has(.pdf-sheet-wrap) {{
+            display: flex !important;
+            justify-content: center;
+            align-items: flex-start;
+            width: 100% !important;
             height: 100% !important;
+        }}
+        .pdf-sheet-wrap {{
+            flex: none;
+            background: #FFFFFF;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+            border-radius: 2px;
+            overflow: hidden;
         }}
         </style>
         """,

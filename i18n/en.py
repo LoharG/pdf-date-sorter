@@ -80,4 +80,7 @@ STRINGS = {
     "next_unassigned": "Next unassigned page",
     "hero_subtitle": "Review pages. Assign dates. Download a chronologically sorted PDF.",
     "hero_guidance": "As you review pages in order, the date you enter carries forward automatically until you enter a different one.",
+    "pages_nav_title": "Pages",
+    "previous_pages": "Previous pages",
+    "next_pages": "Next pages",
 }
