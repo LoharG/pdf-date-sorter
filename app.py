@@ -4,7 +4,7 @@ from core.session_manager import load_session, cleanup_session, cleanup_old_sess
 from components.theme import inject_theme
 from components.uploader import render_uploader
 from components.viewer import render_viewer
-from components.date_panel import render_date_panel
+from components.date_panel import render_date_panel, render_date_panel_secondary
 from components.sort_panel import render_sort_panel
 from components.page_strip import render_page_strip
 from i18n import t
@@ -122,8 +122,35 @@ else:
         render_viewer(session)
     with right_col:
         updated_session = render_date_panel(session)
-        updated_session = render_sort_panel(updated_session)
+        with st.container(key="date_panel_scroll"):
+            updated_session = render_date_panel_secondary(updated_session)
+            updated_session = render_sort_panel(updated_session)
         st.session_state["session"] = updated_session
 
-    st.divider()
     render_page_strip(session)
+
+    st.markdown(
+        """
+        <style>
+        /* Safety net, not the primary mechanism: on normal laptop viewports
+           (1366x768, 1440x900, 1280x720) everything above fits without this
+           ever needing to scroll. It only engages on unusually short
+           viewports or heavy browser text zoom, so primary actions (Save,
+           Save & Next, Back/Next) are never clipped — they render before
+           this container even starts. */
+        .st-key-date_panel_scroll {
+            /* flex:none needed for the same reason as the viewer container in
+               components/viewer.py: this element is also a flex item of its
+               parent's column-flex layout via Streamlit's own generated
+               class (flex: 1 1 0%), which silently overrides an explicit
+               max-height/height set via a DIFFERENT (even !important)
+               property — confirmed by inspecting matched CSS rules. */
+            flex: none !important;
+            max-height: calc(100vh - 370px) !important;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )

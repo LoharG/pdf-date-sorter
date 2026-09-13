@@ -148,6 +148,20 @@ def render_date_panel(session: dict) -> dict:
             st.session_state["next_clicked"] = True
             st.rerun()
 
+    return session
+
+
+def render_date_panel_secondary(session: dict) -> dict:
+    """
+    Progress + undo + next-unassigned. Split from render_date_panel() so
+    the essential controls above (status, input, Save/Save & Next, Back/
+    Next) can render outside the bounded-height safety-net container in
+    app.py and are never the part that ends up scrolled out of view on an
+    unusually short viewport — only this secondary content is.
+    """
+    assignments = session["assignments"]
+    page_count = session["page_count"]
+
     undo_stack = st.session_state.get("undo_stack", [])
     if undo_stack:
         if st.button(t("undo"), key="btn_undo"):
@@ -156,8 +170,6 @@ def render_date_panel(session: dict) -> dict:
             _save_with_status(session)
             st.session_state["_edit_page"] = None
             st.rerun()
-
-    st.divider()
 
     assigned = sum(1 for a in assignments if a["date"] is not None)
     unassigned = page_count - assigned

@@ -27,6 +27,10 @@ _CSS = """
     --status-explicit: #4ADE80;
     --status-inherited: #60A5FA;
     --status-unassigned: #FBBF24;
+    --tooltip-bg: #202938;
+    --tooltip-text: #F8FAFC;
+    --tooltip-border: #475569;
+    --focus-ring: #FFB36B;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -54,12 +58,74 @@ _CSS = """
     color: var(--text-primary);
 }
 
+/* Tooltips (st.button help=, etc.) render as a direct child of <body>,
+   outside stAppViewContainer entirely (verified: parent chain is
+   body > wrapper div > stTooltipContent, no ancestor in the app tree).
+   Streamlit's default here is a WHITE box with dark text — readable on
+   its own, but our earlier broad "p, span, div { color: text-primary }"
+   rule (now scoped, see above) was still reaching this portaled element
+   and forcing its text near-white too, causing literal white-on-white.
+   Explicit, narrowly-scoped override, independent of that broader rule.
+   No arrow/caret exists on this Streamlit version's tooltip (confirmed:
+   ::before/::after both compute to `content: none`) — nothing to color. */
+[data-testid="stTooltipContent"] {
+    background-color: var(--tooltip-bg) !important;
+    color: var(--tooltip-text) !important;
+    border: 1px solid var(--tooltip-border) !important;
+    border-radius: 8px;
+}
+[data-testid="stTooltipContent"] p {
+    color: var(--tooltip-text) !important;
+}
+
+/* block-container ships with ~90px top / ~150px bottom padding by
+   default (measured) — on a 768px-tall laptop viewport that's 240px of
+   pure padding before any content, the single largest cause of the PDF
+   viewer growing past the visible window. Reduced to just enough top
+   padding to clear Streamlit's own absolute-positioned header (56px). */
+.block-container {
+    padding-top: 60px !important;
+    padding-bottom: 12px !important;
+}
+
+/* Streamlit's default 15px flexbox gap between every stacked element
+   (measured via computed style on stVerticalBlock) compounds across the
+   15-20+ stacked elements on the workspace screen — header row, divider,
+   toolbar, every date-panel widget, every page-strip row — into a large
+   share of why the page grew taller than the viewport. Tightened
+   globally rather than patched element-by-element. Not touching the
+   hero/upload screen's own spacing (.hero-* classes set their own margins
+   explicitly and are unaffected by this). */
+[data-testid="stVerticalBlock"] {
+    gap: 6px !important;
+}
+[data-testid="stHorizontalBlock"] {
+    gap: 8px !important;
+}
+hr, [data-testid="stDivider"] {
+    margin-top: 8px !important;
+    margin-bottom: 8px !important;
+}
+
 html, body, [class*="css"] {
     font-size: 15px;
     color: var(--text-primary);
 }
 
-h1, h2, h3, h4, h5, p, span, label, div {
+/* Scoped to the app's own container, NOT global — tooltips, dropdown
+   popovers, and other portaled elements render as direct children of
+   <body>, outside stAppViewContainer, and must not inherit this or their
+   own (differently-colored) surfaces become unreadable. See the tooltip
+   fix below: that bug was caused by exactly this rule being unscoped. */
+[data-testid="stAppViewContainer"] h1,
+[data-testid="stAppViewContainer"] h2,
+[data-testid="stAppViewContainer"] h3,
+[data-testid="stAppViewContainer"] h4,
+[data-testid="stAppViewContainer"] h5,
+[data-testid="stAppViewContainer"] p,
+[data-testid="stAppViewContainer"] span,
+[data-testid="stAppViewContainer"] label,
+[data-testid="stAppViewContainer"] div {
     color: var(--text-primary);
 }
 
@@ -149,6 +215,23 @@ input[data-testid$="Field"] {
     background-color: transparent !important;
     color: var(--text-primary) !important;
 }
+/* Entered text: primary color, fully opaque (readable). Placeholder:
+   secondary color at full opacity — Streamlit's own default placeholder
+   style (rgba(49,51,63,0.6), a dark gray meant for a light input) is
+   invisible against our dark input background; not just dim, invisible. */
+input[data-testid$="Field"]::placeholder {
+    color: var(--text-secondary) !important;
+    opacity: 1 !important;
+}
+/* Focus ring: Streamlit's own default focus border is a bright red
+   (rgb(255,75,75)) — its baseline focus color, not an error state, but it
+   reads as one and clashes with this theme. Replaced with an accent ring
+   that stays clearly visible (a visible focus indicator is required) without
+   implying invalid input. */
+div:has(> input[data-testid$="Field"]):focus-within {
+    border-color: var(--focus-ring) !important;
+    box-shadow: 0 0 0 2px rgba(255, 179, 107, 0.35) !important;
+}
 [role="option"] {
     color: var(--text-primary) !important;
     border-radius: 8px;
@@ -192,12 +275,22 @@ div[data-testid="stAlertContainer"] {
     color: var(--text-primary) !important;
 }
 
-[data-testid="stProgress"] > div > div {
-    background-color: var(--accent) !important;
-}
-[data-testid="stProgress"] {
+/* stProgress structure (verified via computed styles, not assumed):
+     stProgress > div(ProgressBar) > div[data-testid="stProgressBarTrack"]  <- the track,
+       ALWAYS full width regardless of value
+         > div (no testid)  <- the actual fill; always 100% width and
+           accent-colored, made to LOOK like it's at N% via
+           `transform: translateX(-(100-N)%)` set inline by Streamlit.
+   Coloring the track instead of the inner fill div (an earlier mistake
+   here) makes the bar look 100% full at every value, since the
+   always-full-width track was the accent color and the correctly
+   0%-translated fill underneath was invisible regardless. */
+[data-testid="stProgressBarTrack"] {
     background-color: var(--panel-raised) !important;
     border-radius: 999px;
+}
+[data-testid="stProgressBarTrack"] > div {
+    background-color: var(--accent) !important;
 }
 
 .app-header {

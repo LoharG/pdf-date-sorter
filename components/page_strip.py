@@ -2,8 +2,8 @@ import streamlit as st
 
 from i18n import t
 
-CHUNK_SIZE = 40
-MARKERS_PER_ROW = 10
+CHUNK_SIZE = 16
+MARKERS_PER_ROW = 16
 
 _STATUS_EMOJI = {
     "explicit": "🟢",

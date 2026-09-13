@@ -41,6 +41,8 @@ STRINGS = {
     "invalid_date": "Please enter a valid date (MM-DD-YYYY).",
     "invalid_date_calendar": "This date does not exist in the calendar.",
     "missing_assignments": "{n} pages have no date assigned. Please assign all dates before sorting.",
+    "missing_assignments_compact": "{n} pages still need dates.",
+    "autofill_remaining": "Fill {n} remaining with {date}",
     "import_fingerprint_mismatch": "This assignment file belongs to a different PDF and cannot be imported.",
     "import_success": "Assignments imported successfully.",
     "date_updated": "Date updated for page {n}.",

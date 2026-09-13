@@ -21,23 +21,24 @@ def render_sort_panel(session: dict) -> dict:
     assigned = sum(1 for a in assignments if a["date"] is not None)
     unassigned = page_count - assigned
 
-    st.divider()
-
     sort_done = st.session_state.get("sort_done", False)
 
     if unassigned > 0:
         last_date = next(
             (a["date"] for a in reversed(assignments) if a["date"] is not None), None
         )
-        st.warning(t("missing_assignments", n=unassigned))
-        if st.button(t("jump_to_unassigned"), key="btn_jump_sort", use_container_width=True):
-            first = next((i for i, a in enumerate(assignments) if a["date"] is None), 0)
-            st.session_state["current_page"] = first
-            st.session_state["_edit_page"] = None
-            st.rerun()
+        # Compact single line, not a full alert box — the "Next unassigned
+        # page" action for finding these pages already lives in the date
+        # panel above; this used to be duplicated here as a second button
+        # with a second, longer warning message.
+        st.markdown(
+            f"<div class='helper-text' style='color:var(--status-unassigned);'>"
+            f"⚠ {t('missing_assignments_compact', n=unassigned)}</div>",
+            unsafe_allow_html=True,
+        )
         if last_date:
             if st.button(
-                f"Fill {unassigned} unassigned pages with last date ({display_date(last_date)})",
+                t("autofill_remaining", n=unassigned, date=display_date(last_date)),
                 key="btn_autofill", use_container_width=True,
             ):
                 from datetime import datetime, timezone

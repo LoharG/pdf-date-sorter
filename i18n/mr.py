@@ -41,6 +41,8 @@ STRINGS = {
     "invalid_date": "कृपया वैध तारीख प्रविष्ट करा (MM-DD-YYYY).",
     "invalid_date_calendar": "ही तारीख कॅलेंडरमध्ये अस्तित्वात नाही.",
     "missing_assignments": "{n} पानांना तारीख नाही. सॉर्ट करण्यापूर्वी सर्व तारखा नियुक्त करा.",
+    "missing_assignments_compact": "{n} पानांना अजून तारीख हवी आहे.",
+    "autofill_remaining": "उर्वरित {n} {date} ने भरा",
     "import_fingerprint_mismatch": "हे नियुक्ती फाइल वेगळ्या PDF साठी आहे.",
     "import_success": "नियुक्त्या यशस्वीरित्या आयात केल्या.",
     "date_updated": "पान {n} साठी तारीख अपडेट केली.",
