@@ -1,10 +1,12 @@
 import streamlit as st
 
 from core.session_manager import load_session, cleanup_session, cleanup_old_sessions
+from components.theme import inject_theme
 from components.uploader import render_uploader
 from components.viewer import render_viewer
 from components.date_panel import render_date_panel
 from components.sort_panel import render_sort_panel
+from components.page_strip import render_page_strip
 from i18n import t
 
 st.set_page_config(
@@ -12,6 +14,7 @@ st.set_page_config(
     page_icon="📄",
     layout="wide",
 )
+inject_theme()
 
 if not st.session_state.get("_initialized"):
     cleanup_old_sessions(24)
@@ -30,7 +33,17 @@ if "session" in params and not st.session_state.get("session_id"):
         st.session_state["session"] = restored
         st.session_state["current_page"] = 0
         st.session_state.setdefault("undo_stack", [])
-        st.session_state.setdefault("sort_done", restored.get("status") == "completed")
+        restored_done = restored.get("status") == "completed"
+        st.session_state.setdefault("sort_done", restored_done)
+        if restored_done:
+            # Best-effort freshness seed: this is our only signal on a fresh
+            # reload. If the file was edited after sorting in a prior session
+            # and never re-sorted, this cannot detect that (no persisted
+            # sort-time snapshot exists in the schema) — documented limitation.
+            st.session_state.setdefault(
+                "_sorted_dates_snapshot",
+                [a["date"] for a in restored["assignments"]],
+            )
     else:
         st.query_params.clear()
         st.warning(t("session_expired"))
@@ -40,15 +53,33 @@ if not st.session_state.get("session_id") and st.session_state.get("session"):
 
 if st.session_state.get("session_id"):
     session = st.session_state["session"]
+    page_count = session["page_count"]
+    current = st.session_state.get("current_page", 0)
 
-    top_col1, top_col2, top_col3, top_col4 = st.columns([3, 3, 1, 1])
-    with top_col1:
-        st.markdown(f"### {t('app_title')}")
-    with top_col2:
+    head1, head2, head3, head4, head5, head6 = st.columns([2.2, 2.6, 1.4, 1, 1.1, 1])
+    with head1:
+        st.markdown(f"<span class='app-title'>{t('app_title')}</span>", unsafe_allow_html=True)
+    with head2:
         fname = session["original_filename"]
-        display_name = (fname[:40] + "…") if len(fname) > 40 else fname
-        st.caption(display_name)
-    with top_col3:
+        display_name = (fname[:34] + "…") if len(fname) > 34 else fname
+        st.markdown(
+            f"<span class='app-filename' title='{fname}'>{display_name}</span>",
+            unsafe_allow_html=True,
+        )
+    with head3:
+        st.markdown(
+            f"<span class='app-page-of'>{t('page_of', current=current + 1, total=page_count)}</span>",
+            unsafe_allow_html=True,
+        )
+    with head4:
+        status = st.session_state.get("save_status")
+        if status == "saving":
+            st.markdown(f"<span class='save-status saving'>{t('saving_status')}</span>", unsafe_allow_html=True)
+        elif status == "saved":
+            st.markdown(f"<span class='save-status saved'>{t('saved_status')}</span>", unsafe_allow_html=True)
+        elif status == "failed":
+            st.markdown(f"<span class='save-status failed'>{t('save_failed_status')}</span>", unsafe_allow_html=True)
+    with head5:
         lang_choice = st.selectbox(
             t("language"),
             options=["en", "mr"],
@@ -60,8 +91,8 @@ if st.session_state.get("session_id"):
         if lang_choice != st.session_state["lang"]:
             st.session_state["lang"] = lang_choice
             st.rerun()
-    with top_col4:
-        if st.button("✕", key="btn_clear_top", help=t("clear_session")):
+    with head6:
+        if st.button(t("change_pdf"), key="btn_clear_top", help=t("clear_session"), use_container_width=True):
             st.session_state["confirm_clear"] = True
 
     if st.session_state.get("confirm_clear"):
@@ -93,3 +124,6 @@ else:
         updated_session = render_date_panel(session)
         updated_session = render_sort_panel(updated_session)
         st.session_state["session"] = updated_session
+
+    st.divider()
+    render_page_strip(session)
