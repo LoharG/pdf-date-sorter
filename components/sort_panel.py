@@ -23,40 +23,6 @@ def render_sort_panel(session: dict) -> dict:
 
     st.divider()
 
-    col_exp, col_imp = st.columns(2)
-    with col_exp:
-        export_data = json.dumps(session, indent=2)
-        st.download_button(
-            label=t("export_json"),
-            data=export_data,
-            file_name=f"assignments_{session['session_id'][:8]}.json",
-            mime="application/json",
-            key="btn_export",
-        )
-    with col_imp:
-        imported_file = st.file_uploader(
-            t("import_json"),
-            type=["json"],
-            key="import_json_upload",
-            label_visibility="collapsed",
-        )
-        if imported_file:
-            try:
-                imported_data = json.loads(imported_file.read())
-                from core.session_manager import import_assignments
-                ok, err = import_assignments(session, imported_data)
-                if ok:
-                    session["assignments"] = imported_data["assignments"]
-                    save_assignments(session)
-                    st.success(t("import_success"))
-                    st.rerun()
-                else:
-                    st.error(t(err))
-            except Exception:
-                st.error(t("upload_corrupted"))
-
-    st.divider()
-
     sort_done = st.session_state.get("sort_done", False)
 
     if unassigned > 0:
@@ -64,10 +30,15 @@ def render_sort_panel(session: dict) -> dict:
             (a["date"] for a in reversed(assignments) if a["date"] is not None), None
         )
         st.warning(t("missing_assignments", n=unassigned))
+        if st.button(t("jump_to_unassigned"), key="btn_jump_sort", use_container_width=True):
+            first = next((i for i, a in enumerate(assignments) if a["date"] is None), 0)
+            st.session_state["current_page"] = first
+            st.session_state["_edit_page"] = None
+            st.rerun()
         if last_date:
             if st.button(
                 f"Fill {unassigned} unassigned pages with last date ({display_date(last_date)})",
-                key="btn_autofill"
+                key="btn_autofill", use_container_width=True,
             ):
                 from datetime import datetime, timezone
                 now = datetime.now(timezone.utc).isoformat()
@@ -80,13 +51,20 @@ def render_sort_panel(session: dict) -> dict:
                 save_assignments(session)
                 st.session_state["session"] = session
                 st.rerun()
-        if st.button(t("jump_to_unassigned"), key="btn_jump_sort"):
-            first = next((i for i, a in enumerate(assignments) if a["date"] is None), 0)
-            st.session_state["current_page"] = first
-            st.rerun()
+        _render_advanced_expander(session)
         return session
 
-    if st.button(t("sort_pdf"), key="btn_sort", disabled=sort_done):
+    dates = [a["date"] for a in assignments if a["date"]]
+    earliest = display_date(min(dates)) if dates else ""
+    latest = display_date(max(dates)) if dates else ""
+
+    st.success(t("ready_to_sort"))
+    st.caption(t("sort_summary_counts", assigned=assigned, total=page_count, unassigned=unassigned))
+    if earliest and latest:
+        st.caption(t("date_range_summary", earliest=earliest, latest=latest))
+    st.caption(t("sort_summary_line"))
+
+    if st.button(t("sort_pdf"), key="btn_sort", disabled=sort_done, use_container_width=True, type="primary"):
         st.session_state["show_sort_confirm"] = True
 
     if st.session_state.get("show_sort_confirm", False):
@@ -106,6 +84,14 @@ def render_sort_panel(session: dict) -> dict:
         if col_no.button(t("sort_confirm_no"), key="btn_sort_no"):
             st.session_state["show_sort_confirm"] = False
             st.rerun()
+
+    current_dates_fingerprint = [a["date"] for a in assignments]
+    if sort_done and st.session_state.get("_sorted_dates_snapshot") != current_dates_fingerprint:
+        # Assignments changed since the last successful sort (in this session) —
+        # don't present a stale download as current. UI-layer only; does not
+        # touch the persisted session schema.
+        sort_done = False
+        st.session_state["sort_done"] = False
 
     if sort_done:
         st.success(t("sort_success"))
@@ -128,7 +114,43 @@ def render_sort_panel(session: dict) -> dict:
             st.query_params.clear()
             st.rerun()
 
+    _render_advanced_expander(session)
     return session
+
+
+def _render_advanced_expander(session: dict) -> None:
+    with st.expander(t("advanced_tools")):
+        col_exp, col_imp = st.columns(2)
+        with col_exp:
+            export_data = json.dumps(session, indent=2)
+            st.download_button(
+                label=t("export_json"),
+                data=export_data,
+                file_name=f"assignments_{session['session_id'][:8]}.json",
+                mime="application/json",
+                key="btn_export",
+            )
+        with col_imp:
+            imported_file = st.file_uploader(
+                t("import_json"),
+                type=["json"],
+                key="import_json_upload",
+                label_visibility="collapsed",
+            )
+            if imported_file:
+                try:
+                    imported_data = json.loads(imported_file.read())
+                    from core.session_manager import import_assignments
+                    ok, err = import_assignments(session, imported_data)
+                    if ok:
+                        session["assignments"] = imported_data["assignments"]
+                        save_assignments(session)
+                        st.success(t("import_success"))
+                        st.rerun()
+                    else:
+                        st.error(t(err))
+                except Exception:
+                    st.error(t("upload_corrupted"))
 
 
 def _run_sort(session: dict) -> None:
@@ -153,6 +175,7 @@ def _run_sort(session: dict) -> None:
         session["status"] = "completed"
         save_assignments(session)
         st.session_state["sort_done"] = True
+        st.session_state["_sorted_dates_snapshot"] = [a["date"] for a in session["assignments"]]
         st.session_state["session"] = session
         st.rerun()
     except Exception:

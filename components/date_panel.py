@@ -7,6 +7,24 @@ from core.session_manager import save_assignments
 from i18n import t
 
 
+def _find_explicit_source_page(assignments: list[dict], current_idx: int) -> int | None:
+    """Read-only lookup of the nearest explicit ancestor page (for helper text only)."""
+    for i in range(current_idx, -1, -1):
+        if assignments[i]["source"] == "explicit":
+            return i
+    return None
+
+
+def _save_with_status(session: dict) -> None:
+    st.session_state["save_status"] = "saving"
+    try:
+        save_assignments(session)
+        st.session_state["save_status"] = "saved"
+    except Exception:
+        st.session_state["save_status"] = "failed"
+        raise
+
+
 def render_date_panel(session: dict) -> dict:
     assignments = session["assignments"]
     current = st.session_state.get("current_page", 0)
@@ -17,38 +35,62 @@ def render_date_panel(session: dict) -> dict:
         st.session_state["current_date_edit"] = display_date(assignment["date"])
         st.session_state["_edit_page"] = current
 
+    max_explicit = max(
+        (i for i, a in enumerate(assignments) if a["source"] == "explicit"),
+        default=-1
+    )
+    would_be_backward = assignment["date"] is not None and current < max_explicit
+
+    st.markdown(f"##### {t('date_for_page', n=current + 1)}")
+
     source = assignment["source"]
     if source == "explicit":
-        status_label = f"● {t('date_status_explicit')}"
-        status_color = "green"
+        st.markdown(f"<span class='date-status-pill explicit'>● {t('date_status_explicit')}</span>", unsafe_allow_html=True)
     elif source == "inherited":
-        status_label = f"○ {t('date_status_inherited')}"
-        status_color = "blue"
+        st.markdown(f"<span class='date-status-pill inherited'>○ {t('date_status_inherited')}</span>", unsafe_allow_html=True)
     else:
-        status_label = f"○ {t('date_status_none')}"
-        status_color = "orange"
+        st.markdown(f"<span class='date-status-pill none'>○ {t('date_status_none')}</span>", unsafe_allow_html=True)
 
-    st.markdown(f":{status_color}[{status_label}]")
+    if source == "inherited":
+        origin = _find_explicit_source_page(assignments, current)
+        if origin is not None:
+            st.markdown(
+                f"<div class='helper-text'>{t('using_date_from_page', date=display_date(assignment['date']), n=origin + 1)}</div>",
+                unsafe_allow_html=True,
+            )
+    elif source is None:
+        st.markdown(f"<div class='helper-text'>{t('find_date_here')}</div>", unsafe_allow_html=True)
 
-    date_input = st.text_input(
+    if would_be_backward:
+        st.markdown(f"<div class='helper-text'>⤺ {t('backward_edit_notice')}</div>", unsafe_allow_html=True)
+
+    st.text_input(
         t("date_label"),
         placeholder=t("date_placeholder"),
         key="current_date_edit",
     )
 
     sticky = get_sticky_date(assignments, current)
-    if sticky:
+    if sticky and source is None:
         st.caption(t("sticky_date", date=display_date(sticky)))
-    else:
-        st.caption(t("no_sticky_date"))
 
-    save_clicked = st.button("💾 " + t("save_date"), key="btn_save_date", use_container_width=True)
-    if save_clicked:
+    save_col, save_next_col = st.columns(2)
+    with save_col:
+        save_clicked = st.button(t("save_date"), key="btn_save_date", use_container_width=True)
+    with save_next_col:
+        save_next_clicked = st.button(
+            t("save_and_next"), key="btn_save_next", use_container_width=True, type="primary",
+            disabled=(current == page_count - 1),
+        )
+
+    if save_clicked or save_next_clicked:
         st.session_state["next_clicked"] = True
         st.session_state["explicit_save"] = True
+        st.session_state["also_advance"] = bool(save_next_clicked)
 
     if st.session_state.pop("next_clicked", False):
         explicit_save = st.session_state.pop("explicit_save", False)
+        also_advance = st.session_state.pop("also_advance", False)
         typed = st.session_state.get("current_date_edit", "").strip()
         effective = typed or display_date(assignment["date"])
         if effective:
@@ -70,25 +112,23 @@ def render_date_panel(session: dict) -> dict:
                 if len(undo_stack) > 1:
                     undo_stack.pop(0)
 
-                max_explicit = max(
-                    (i for i, a in enumerate(assignments) if a["source"] == "explicit"),
-                    default=-1
-                )
-                is_backward = assignment["date"] is not None and current < max_explicit
+                is_backward = would_be_backward
 
                 if is_backward:
                     session["assignments"] = apply_backward_edit(assignments, current, result)
+                    _save_with_status(session)
                     st.toast(t("date_updated", n=current + 1))
-                    save_assignments(session)
                     st.session_state["_edit_page"] = None
+                    if also_advance and current < page_count - 1:
+                        st.session_state["current_page"] = current + 1
                     st.rerun()
                 else:
                     session["assignments"] = apply_next(assignments, current, result)
-                    save_assignments(session)
+                    _save_with_status(session)
                     if explicit_save:
                         st.toast(t("date_updated", n=current + 1))
                     st.session_state["_edit_page"] = None
-                    if not explicit_save and current < page_count - 1:
+                    if (also_advance or not explicit_save) and current < page_count - 1:
                         st.session_state["current_page"] = current + 1
                     st.rerun()
         else:
@@ -97,12 +137,23 @@ def render_date_panel(session: dict) -> dict:
                 st.session_state["current_page"] = current + 1
             st.rerun()
 
+    nav_back, nav_next = st.columns(2)
+    with nav_back:
+        if st.button(f"◀ {t('back')}", key="btn_panel_back", disabled=(current == 0), use_container_width=True):
+            st.session_state["current_page"] = current - 1
+            st.session_state["_edit_page"] = None
+            st.rerun()
+    with nav_next:
+        if st.button(f"{t('next')} ▶", key="btn_panel_next", disabled=(current == page_count - 1), use_container_width=True):
+            st.session_state["next_clicked"] = True
+            st.rerun()
+
     undo_stack = st.session_state.get("undo_stack", [])
     if undo_stack:
         if st.button(t("undo"), key="btn_undo"):
             last = undo_stack.pop()
             session["assignments"] = last["assignments_snapshot"]
-            save_assignments(session)
+            _save_with_status(session)
             st.session_state["_edit_page"] = None
             st.rerun()
 
@@ -115,12 +166,8 @@ def render_date_panel(session: dict) -> dict:
     st.progress(assigned / page_count if page_count > 0 else 0)
     st.caption(t("progress", assigned=assigned, total=page_count, pct=pct))
 
-    col_a, col_b = st.columns(2)
-    col_a.metric(t("assigned_pages"), assigned)
-    col_b.metric(t("unassigned_pages"), unassigned)
-
     if unassigned > 0:
-        if st.button(t("jump_to_unassigned"), key="btn_jump"):
+        if st.button(t("next_unassigned"), key="btn_jump", use_container_width=True):
             first_unassigned = next(
                 (i for i, a in enumerate(assignments) if a["date"] is None), 0
             )
