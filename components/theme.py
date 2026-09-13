@@ -87,6 +87,23 @@ _CSS = """
 .block-container {
     padding-top: 60px !important;
     padding-bottom: 12px !important;
+    /* Without a cap, "wide" layout mode stretches the block-container to
+       the full browser width on large monitors — confirmed via screenshot
+       at 1920px: the toolbar's columns spread out with large gaps between
+       controls, the date panel sits far to the right with a wide empty gap
+       next to it, and a Fit Page portrait document (necessarily
+       height-constrained, since the viewer container's height is
+       viewport-height-based while its width just kept growing with the
+       window) ends up surrounded by a disproportionate amount of grey
+       viewer surface. Capping the overall workspace width keeps the three
+       columns (sidebar/viewer/date panel) close together at any monitor
+       size instead of letting the middle column balloon. Chosen width
+       comfortably fits sidebar (~200px) + a readable document column +
+       date panel (~320px) without constraining any of the tested laptop
+       viewports (1280-1512px wide), which are already narrower than this. */
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* Streamlit's default 15px flexbox gap between every stacked element
@@ -380,14 +397,49 @@ div[data-testid="stAlertContainer"] {
     font-weight: 700;
     color: var(--text-primary);
 }
-.sidebar-thumb {
-    display: block;
-    width: 100%;
-    height: auto;
-    border-radius: 4px;
+/* Thumbnail nav cards: components/sidebar_nav.py paints each page's
+   thumbnail as a background-image directly on that page's own st.button
+   (see the comment there for why — no supported way to make a plain <img>
+   clickable here). This block only handles sizing/hover/focus, since the
+   background-image itself is set per-button via a scoped .st-key-
+   selector injected alongside each thumbnail. */
+/* Scoped to the per-page key (not a blanket .stSidebar .stButton rule) so
+   this only reshapes the thumbnail cards, not the ◀/▶ window-browse
+   buttons above them. .stButton > button uses a direct-child combinator
+   in this Streamlit version's DOM, but a tooltip wrapper span sits between
+   .stButton and the actual <button> — confirmed via ancestor-chain
+   inspection — so a descendant (space) combinator is used instead. */
+[data-testid="stSidebar"] [class*="st-key-sidebar_page_"] button {
+    height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 6px;
     margin-top: 8px;
-    margin-bottom: 2px;
-    background: #FFFFFF;
+    color: var(--text-primary) !important;
+    /* The gradient scrim (painted as the first background layer, see
+       sidebar_nav.py) keeps this label readable regardless of what's
+       underneath — overriding the primary-button accent fill this theme
+       otherwise gives the current page, which would fight the image. */
+    background-color: #FFFFFF;
+}
+[data-testid="stSidebar"] [class*="st-key-sidebar_page_"] button p {
+    color: var(--text-primary) !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+[data-testid="stSidebar"] [class*="st-key-sidebar_page_"] button:hover {
+    border-color: var(--accent) !important;
+    cursor: pointer;
+}
+[data-testid="stSidebar"] [class*="st-key-sidebar_page_"] button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+/* Current page: a clear border the eye can pick out among a column of
+   otherwise-identical cards, independent of the background-image. */
+[data-testid="stSidebar"] [class*="st-key-sidebar_page_"] button[kind="primary"] {
+    border: 2px solid var(--accent) !important;
 }
 .workspace-status-line {
     font-size: 0.78rem;

@@ -81,6 +81,7 @@ STRINGS = {
     "hero_subtitle": "Review pages. Assign dates. Download a chronologically sorted PDF.",
     "hero_guidance": "As you review pages in order, the date you enter carries forward automatically until you enter a different one.",
     "pages_nav_title": "Pages",
+    "thumbnail_nav_label": "Go to page {n}, {status} date",
     "previous_pages": "Previous pages",
     "next_pages": "Next pages",
 }

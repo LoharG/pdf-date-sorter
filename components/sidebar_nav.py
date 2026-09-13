@@ -96,27 +96,55 @@ def render_sidebar_nav(session: dict) -> None:
             "inherited": t("date_status_inherited"),
         }.get(source, t("date_status_none"))
         is_current = idx == current
+        marker = "▣" if is_current else emoji
 
+        # The thumbnail and the page button used to be two separate
+        # elements (an <img> plus a <button> below it), so only the button
+        # navigated — clicking the image itself did nothing. There is no
+        # supported way to attach a click handler to a plain <img> here
+        # (confirmed elsewhere in this app: Streamlit's markdown sanitizer
+        # strips both <script> tags and inline event-handler attributes
+        # from unsafe_allow_html content), so instead of layering a second
+        # element on top of the image, the thumbnail is rendered AS this
+        # same button's own background image. The button is now the whole
+        # card — one element, one click handler (the existing navigation
+        # callback below, unchanged), no nested buttons, nothing to
+        # duplicate.
         try:
             thumb_bytes = _load_thumbnail(session, idx)
             b64 = base64.b64encode(thumb_bytes).decode("ascii")
-            highlight = "outline: 2px solid var(--accent);" if is_current else ""
-            st.markdown(
-                f"<img src='data:image/png;base64,{b64}' class='sidebar-thumb' "
-                f"style='{highlight}' alt='{t('page_of', current=idx + 1, total=page_count)}' />",
-                unsafe_allow_html=True,
-            )
+            bg_style = f"""
+            .st-key-sidebar_page_{idx} button {{
+                background-image:
+                    linear-gradient(to top, rgba(9,11,16,0.92) 0%, rgba(9,11,16,0.65) 30%, transparent 55%),
+                    url("data:image/png;base64,{b64}");
+                background-size: 100% 100%, contain;
+                background-position: center, top center;
+                background-repeat: no-repeat, no-repeat;
+                background-color: #FFFFFF;
+            }}
+            """
         except Exception:
-            pass  # Numbered fallback below still lets this page be reached.
+            # Numbered fallback: the button below still lets this page be
+            # reached even if a thumbnail fails to render.
+            bg_style = ""
 
-        marker = "▣" if is_current else emoji
+        st.markdown(f"<style>{bg_style}</style>", unsafe_allow_html=True)
+
+        accessible_label = t("thumbnail_nav_label", n=idx + 1, status=status_word.lower())
         if st.button(
             f"{marker} {idx + 1}",
             key=f"sidebar_page_{idx}",
             type="primary" if is_current else "secondary",
             use_container_width=True,
-            help=f"{t('page_of', current=idx + 1, total=page_count)} — {status_word}",
+            help=accessible_label,
         ):
+            # Same navigation-only effect as before the thumbnail/button
+            # merge: only current_page (and the edit-buffer/window-follow
+            # bookkeeping) changes. No date, save, or sort state is
+            # touched, so an unsaved typed date and the viewer's zoom mode
+            # are unaffected — the date panel and viewer simply re-render
+            # for the new current_page on the rerun below.
             st.session_state["current_page"] = idx
             st.session_state["_edit_page"] = None
             st.session_state["_sidebar_window_follow"] = idx
