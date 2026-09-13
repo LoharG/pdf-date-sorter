@@ -4,3 +4,6 @@ __pycache__/
 tmp/*
 !tmp/.gitkeep
 .DS_Store
+.coverage
+htmlcov/
+.pytest_cache/
