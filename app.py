@@ -167,7 +167,15 @@ else:
                max-height/height set via a DIFFERENT (even !important)
                property — confirmed by inspecting matched CSS rules. */
             flex: none !important;
-            max-height: calc(100vh - 370px) !important;
+            /* Matches components/viewer.py's _VIEWER_HEIGHT_OFFSET_PX —
+               kept as the same number so both budgets stay conceptually
+               aligned, even though this cap wasn't the one actually
+               consuming the wasted vertical space (this secondary content
+               was already comfortably under the old 370-based cap; the
+               waste was in the unused space below the workspace, now
+               reclaimed by the viewer instead). Raising this ceiling only
+               makes the safety net less restrictive, never more. */
+            max-height: calc(100vh - 225px) !important;
             overflow-y: auto;
             padding-right: 4px;
         }

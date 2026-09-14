@@ -14,13 +14,25 @@ _BASE_DPI = 150
 _MIN_ZOOM = 50
 _MAX_ZOOM = 300
 _ZOOM_STEP = 25
-# Fixed overhead budget (header, app-header row, toolbar, dividers, page
-# strip) measured empirically at 1366x768 and given a small safety margin.
-# calc(100vh - Npx) is viewport-relative (recalculates automatically on
-# resize, unlike a fixed vh% which doesn't account for the app's own fixed-
-# height chrome) — see components/theme.py for the block-container padding
-# half of this fix.
-_VIEWER_HEIGHT_OFFSET_PX = 370
+# Fixed overhead budget (header, app-header row, toolbar, the status line
+# below the viewer, and outer padding). calc(100vh - Npx) is
+# viewport-relative (recalculates automatically on resize, unlike a fixed
+# vh% which doesn't account for the app's own fixed-height chrome) — see
+# components/theme.py for the block-container padding half of this fix.
+#
+# Re-measured directly rather than reused: the previous 370 was carried
+# over from when this workspace had more chrome (a bottom page-strip,
+# extra dividers) that has since been replaced by the sidebar and a single
+# thin status line, but the offset itself was never re-tuned down to
+# match. Confirmed via getBoundingClientRect at three different viewport
+# heights (768/982/1024px) that this left an identical, viewport-
+# independent 165px of completely unused space below the workspace at
+# every one of them — not a little slack, a fixed dead zone the same size
+# regardless of window height, i.e. a stale constant rather than a
+# genuine content requirement. 225 (a ~20px safety margin below the
+# measured true minimum of ~205) reclaims that space for the viewer
+# without cutting it to zero.
+_VIEWER_HEIGHT_OFFSET_PX = 225
 
 
 def _get_pdf_path(session: dict) -> Path:
