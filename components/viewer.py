@@ -118,10 +118,13 @@ def render_viewer(session: dict) -> None:
     with z2:
         # fit_width/fit_page are viewport-relative — the resulting on-screen
         # scale isn't a single Python-known number (it depends on the live
-        # browser width/height), so the mode name is shown instead of a
-        # guessed percentage. Custom zoom's percentage IS exact: it's the
-        # same value the DPI in _render_dpi was computed from.
-        label = f"{zoom_percent}%" if zoom_mode == "custom" else t(zoom_mode)
+        # browser width/height), so no percentage is guessed here. Repeating
+        # the mode name in this slot ("Fit Page" here AND on the already-
+        # highlighted Fit Page button next to it) was reported as a
+        # confusing duplicate, so a neutral placeholder is shown instead;
+        # only custom zoom (which IS exact — it's the same value the DPI in
+        # _render_dpi was computed from) shows a real percentage here.
+        label = f"{zoom_percent}%" if zoom_mode == "custom" else "—"
         st.markdown(
             "<div style='text-align:center;padding-top:10px;"
             "font-size:0.85rem;color:var(--text-secondary);white-space:nowrap;'>"
