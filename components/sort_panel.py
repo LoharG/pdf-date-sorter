@@ -100,9 +100,18 @@ def render_sort_panel(session: dict) -> dict:
         if output_path.exists():
             size = _format_size(output_path.stat().st_size)
             st.caption(t("download_size", size=size))
+            # A callable, not output_path.read_bytes() directly: Streamlit
+            # only materializes non-callable download_button data as bytes
+            # immediately AND on every single rerun this element renders
+            # (confirmed by reading marshall_file() in Streamlit's own
+            # button.py) — for a large sorted PDF that means re-reading the
+            # whole file into memory on every unrelated interaction after
+            # sorting finishes. A callable is registered for deferred
+            # execution instead and only actually read when the user
+            # clicks Download.
             st.download_button(
                 label=t("download"),
-                data=output_path.read_bytes(),
+                data=lambda: output_path.read_bytes(),
                 file_name=f"{Path(session['original_filename']).stem}_sorted.pdf",
                 mime="application/pdf",
                 key="btn_download",

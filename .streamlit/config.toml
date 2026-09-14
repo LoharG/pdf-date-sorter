@@ -1,0 +1,24 @@
+# server.maxUploadSize is Streamlit's supported setting for the upload
+# limit, in MiB (binary megabytes) — confirmed by reading the installed
+# version's own SERVER-SIDE enforcement code (starlette_routes.py,
+# _upload_put): every upload is capped at
+#   config.get_option("server.maxUploadSize") * 1024 * 1024
+# regardless of anything set in Python. This is the one true limit —
+# confirmed by reading the same file that file_uploader's own
+# max_upload_size= parameter is a CLIENT-SIDE-ONLY hint (shown in the
+# dropzone UI, checked by the browser before it even starts uploading) and
+# does NOT change what the server-side upload handler above will accept.
+# So components/uploader.py does not keep a separate MAX_UPLOAD_MB
+# constant that could drift from this file — it reads
+# st.get_option("server.maxUploadSize") at runtime and uses that same
+# resolved value for the widget hint, this app's own validation, and the
+# user-facing size label, which by construction can never disagree with
+# what the server actually enforces (or with a deployment env-var/CLI
+# override of this same option, since get_option reflects the fully
+# resolved config either way).
+#
+# 500 is the tested, supported target for this deployment. See
+# DEPLOYMENT.md "Upload limits" for the 1 GB option, why it is NOT enabled
+# here by default, and what would need to be verified before turning it on.
+[server]
+maxUploadSize = 500

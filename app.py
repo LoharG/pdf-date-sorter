@@ -1,6 +1,11 @@
 import streamlit as st
 
-from core.session_manager import load_session, cleanup_session, cleanup_old_sessions
+from core.session_manager import (
+    load_session,
+    cleanup_session,
+    cleanup_old_sessions,
+    cleanup_stale_staging_files,
+)
 from components.theme import inject_theme
 from components.uploader import render_uploader
 from components.viewer import render_viewer
@@ -18,6 +23,7 @@ inject_theme()
 
 if not st.session_state.get("_initialized"):
     cleanup_old_sessions(24)
+    cleanup_stale_staging_files(24)
     st.session_state["_initialized"] = True
 
 if "lang" not in st.session_state:

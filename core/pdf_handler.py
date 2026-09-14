@@ -5,17 +5,40 @@ from typing import Callable
 
 import fitz  # PyMuPDF
 
-from core.session_manager import get_session_dir
+
+def check_upload_size(size_bytes: int, max_mb: int) -> bool:
+    """
+    Pure byte-count boundary check, deliberately separate from PDF
+    parsing/validation so it's cheap to unit-test at exact boundaries with
+    a mocked size and doesn't require constructing real files of a given
+    size. max_mb is MiB (1024*1024 bytes) — matches Streamlit's own
+    server.maxUploadSize unit, confirmed by reading its enforcement code
+    (max_size_bytes = maxUploadSize * 1024 * 1024 in
+    streamlit/web/server/starlette/starlette_routes.py), not assumed.
+    """
+    return size_bytes <= max_mb * 1024 * 1024
 
 
-def validate_pdf(file_bytes: bytes, max_mb: int = 200, max_pages: int = 5000) -> tuple[bool, str, int]:
-    size_mb = len(file_bytes) / (1024 * 1024)
-    if size_mb > max_mb:
-        return False, "upload_too_large", 0
-    if file_bytes[:4] != b"%PDF":
+def validate_pdf_path(pdf_path: Path, max_pages: int = 5000) -> tuple[bool, str, int]:
+    """
+    Validates a PDF already saved to disk. Deliberately takes a path, not
+    bytes: opening from a path lets fitz read/buffer the file itself
+    instead of requiring a second full in-memory copy on top of whatever
+    Python bytes object the caller might otherwise be holding — the
+    difference matters once uploads reach hundreds of MB. Size must be
+    checked by the caller (see check_upload_size) before staging the file
+    at all, so an oversized upload is rejected without ever being written
+    to disk or opened here.
+    """
+    try:
+        with open(pdf_path, "rb") as f:
+            header = f.read(4)
+    except OSError:
+        return False, "upload_corrupted", 0
+    if header != b"%PDF":
         return False, "upload_invalid_type", 0
     try:
-        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        doc = fitz.open(str(pdf_path))
     except fitz.FileDataError:
         return False, "upload_corrupted", 0
     except Exception:
@@ -31,14 +54,6 @@ def validate_pdf(file_bytes: bytes, max_mb: int = 200, max_pages: int = 5000) ->
         return True, "", page_count
     finally:
         doc.close()
-
-
-def save_uploaded_pdf(session_id: str, file_bytes: bytes, safe_filename: str) -> Path:
-    session_dir = get_session_dir(session_id)
-    session_dir.mkdir(parents=True, exist_ok=True)
-    dest = session_dir / safe_filename
-    dest.write_bytes(file_bytes)
-    return dest
 
 
 def render_page(pdf_path: Path, page_index: int, dpi: int = 150) -> bytes:

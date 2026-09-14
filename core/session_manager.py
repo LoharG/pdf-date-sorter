@@ -70,6 +70,46 @@ def compute_fingerprint(file_bytes: bytes) -> str:
     return hashlib.sha256(chunk).hexdigest()[:16]
 
 
+def compute_fingerprint_path(path: Path) -> str:
+    """
+    Same algorithm as compute_fingerprint (first 4096 bytes, sha256,
+    truncated to 16 hex chars) so fingerprints for identical PDF content
+    are byte-for-byte identical either way — existing persisted
+    source_fingerprint values, and cross-session assignment-JSON imports
+    that compare against them, keep working unchanged. Reads from disk
+    instead of an in-memory buffer purely to avoid requiring the caller to
+    still be holding the whole upload in memory just to fingerprint it.
+    """
+    with open(path, "rb") as f:
+        chunk = f.read(4096)
+    return hashlib.sha256(chunk).hexdigest()[:16]
+
+
+def get_staging_dir() -> Path:
+    """
+    Uploads are streamed here in chunks and validated BEFORE a session_id
+    exists — keeping this separate from any session's own directory means
+    a rejected or abandoned upload never touches, and can never be
+    mistaken for, another session's files. cleanup_old_sessions only walks
+    TMP_DIR's session subdirectories (see below); this staging dir is
+    swept by cleanup_stale_staging_files instead, on the same age-based
+    policy.
+    """
+    d = TMP_DIR / "_staging"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def cleanup_stale_staging_files(max_age_hours: int = 24) -> None:
+    staging_dir = get_staging_dir()
+    if not staging_dir.exists():
+        return
+    cutoff = datetime.now(timezone.utc).timestamp() - max_age_hours * 3600
+    for entry in staging_dir.iterdir():
+        if entry.is_file() and entry.stat().st_mtime < cutoff:
+            entry.unlink(missing_ok=True)
+
+
 def cleanup_session(session_id: str) -> None:
     session_dir = get_session_dir(session_id)
     if session_dir.exists():
@@ -81,6 +121,8 @@ def cleanup_old_sessions(max_age_hours: int = 24) -> None:
         return
     cutoff = datetime.now(timezone.utc).timestamp() - max_age_hours * 3600
     for entry in TMP_DIR.iterdir():
+        if entry.name == "_staging":
+            continue  # handled by cleanup_stale_staging_files instead
         if entry.is_dir() and entry.stat().st_mtime < cutoff:
             shutil.rmtree(entry, ignore_errors=True)
 
