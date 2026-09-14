@@ -79,31 +79,30 @@ _CSS = """
     color: var(--tooltip-text) !important;
 }
 
-/* block-container ships with ~90px top / ~150px bottom padding by
-   default (measured) — on a 768px-tall laptop viewport that's 240px of
-   pure padding before any content, the single largest cause of the PDF
-   viewer growing past the visible window. Reduced to just enough top
-   padding to clear Streamlit's own absolute-positioned header (56px). */
+/* block-container ships with ~90px top / ~150px bottom padding, AND
+   75px left/right padding, by default (measured). The top/bottom half was
+   already addressed. The left/right 75px (150px combined) was not — found
+   by computed-style inspection: it was the actual cause of the reported
+   "large gap between the sidebar and the main workspace" (the sidebar
+   sits flush against the block-container's edge; the 75px gap is the
+   block-container's OWN left padding starting the viewer well past that
+   edge) and it was also taking width directly away from the document
+   column, working against Fit Width's goal of rendering as large a page
+   as the available space allows. Reduced to a modest 16px so the sidebar,
+   viewer, and date panel sit close together without touching.
+
+   No max-width cap here (an earlier one was removed): a previous version
+   of this rule capped the workspace at 1600px specifically to limit how
+   much GREY SURFACE a height-constrained Fit Page document would be
+   surrounded by on very wide monitors. That trade-off is no longer
+   wanted — Fit Page's grey side margins are expected and fine, and a cap
+   here would instead limit how wide Fit Width's actual rendered page can
+   grow, which directly works against making the document larger. */
 .block-container {
     padding-top: 60px !important;
     padding-bottom: 12px !important;
-    /* Without a cap, "wide" layout mode stretches the block-container to
-       the full browser width on large monitors — confirmed via screenshot
-       at 1920px: the toolbar's columns spread out with large gaps between
-       controls, the date panel sits far to the right with a wide empty gap
-       next to it, and a Fit Page portrait document (necessarily
-       height-constrained, since the viewer container's height is
-       viewport-height-based while its width just kept growing with the
-       window) ends up surrounded by a disproportionate amount of grey
-       viewer surface. Capping the overall workspace width keeps the three
-       columns (sidebar/viewer/date panel) close together at any monitor
-       size instead of letting the middle column balloon. Chosen width
-       comfortably fits sidebar (~200px) + a readable document column +
-       date panel (~320px) without constraining any of the tested laptop
-       viewports (1280-1512px wide), which are already narrower than this. */
-    max-width: 1600px;
-    margin-left: auto;
-    margin-right: auto;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
 }
 
 /* Streamlit's default 15px flexbox gap between every stacked element
@@ -388,6 +387,26 @@ div[data-testid="stAlertContainer"] {
        fixed once for tooltips. */
     background-color: var(--panel-bg) !important;
     border-right: 1px solid var(--border);
+}
+/* Collapsing the sidebar (aria-expanded="false") does NOT shrink it in
+   this Streamlit version — confirmed via computed style: it stays
+   position:relative at its full 200px width and is only slid off-screen
+   with transform:translateX(), which doesn't remove it from the flex
+   layout. That's why the document next to it never grew, even after a
+   rerun — this is a genuinely different, more specific finding than an
+   earlier "needs a rerun" write-up, corrected here after re-measuring
+   directly rather than reusing that assumption. Forcing a real 0 width
+   only when collapsed lets the flex layout actually reclaim the space;
+   this is a higher-specificity override of the rule above ([data-testid]
+   plus [aria-expanded]) so it wins without needing source-order luck. The
+   re-expand control (data-testid="stExpandSidebarButton") is confirmed a
+   separate top-level element, not a child of the sidebar, so it is
+   unaffected by this and stays reachable. */
+[data-testid="stSidebar"][aria-expanded="false"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    border-right: none !important;
 }
 [data-testid="stSidebar"] [data-testid="stSidebarContent"] {
     padding-top: 16px;

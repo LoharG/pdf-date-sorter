@@ -225,7 +225,11 @@ def _render_scrollable_image(img_bytes: bytes, zoom_mode: str, page_index: int) 
             border: 1px solid var(--border);
             border-radius: 12px;
             background: var(--viewer-surface);
-            padding: 20px;
+            /* Tightened from 20px — every pixel here is taken directly off
+               Fit Width's available width (and the document's rendered
+               size with it), and 20px was more than needed for a visible
+               margin around the page. */
+            padding: 12px;
         }}
         /* Every wrapper Streamlit inserts between the container and our sheet
            div becomes a centering flex row with a definite height (needed
