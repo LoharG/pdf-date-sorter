@@ -415,18 +415,21 @@ div[data-testid="stAlertContainer"] {
     flex-direction: column;
     justify-content: flex-end;
     align-items: center;
-    padding-bottom: 6px;
+    /* Reserved as the label's own strip: sidebar_nav.py's background-image
+       uses background-origin:content-box, so the thumbnail is sized and
+       positioned against the box MINUS this padding — it never extends
+       into this area. That leaves this strip showing the button's own
+       background-color (below) with nothing under the text, so the page
+       number/status label reads as a separate element from the thumbnail
+       above it rather than text overlaid on the image. */
+    padding: 0 4px 30px;
+    box-sizing: border-box;
     margin-top: 8px;
     color: var(--text-primary) !important;
-    /* The gradient scrim (painted as the first background layer, see
-       sidebar_nav.py) keeps this label readable regardless of what's
-       underneath — overriding the primary-button accent fill this theme
-       otherwise gives the current page, which would fight the image. */
-    background-color: #FFFFFF;
+    background-color: var(--panel-raised) !important;
 }
 [data-testid="stSidebar"] [class*="st-key-sidebar_page_"] button p {
     color: var(--text-primary) !important;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 [data-testid="stSidebar"] [class*="st-key-sidebar_page_"] button:hover {
     border-color: var(--accent) !important;

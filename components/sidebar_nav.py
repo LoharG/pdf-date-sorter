@@ -113,14 +113,23 @@ def render_sidebar_nav(session: dict) -> None:
         try:
             thumb_bytes = _load_thumbnail(session, idx)
             b64 = base64.b64encode(thumb_bytes).decode("ascii")
+            # No gradient over the thumbnail — a prior version dimmed the
+            # image with a scrim so label text stayed legible on top of it,
+            # but that was reported as obscuring the thumbnail itself. The
+            # image and the page-number/status label now occupy two
+            # visually distinct regions of the same button instead:
+            # background-origin:content-box makes the image size and
+            # position itself against the button's content box only (i.e.
+            # excluding padding-bottom, reserved below in theme.py for the
+            # label), so the two never overlap and neither needs to be
+            # dimmed for the other to stay readable.
             bg_style = f"""
             .st-key-sidebar_page_{idx} button {{
-                background-image:
-                    linear-gradient(to top, rgba(9,11,16,0.92) 0%, rgba(9,11,16,0.65) 30%, transparent 55%),
-                    url("data:image/png;base64,{b64}");
-                background-size: 100% 100%, contain;
-                background-position: center, top center;
-                background-repeat: no-repeat, no-repeat;
+                background-image: url("data:image/png;base64,{b64}");
+                background-size: contain;
+                background-position: top center;
+                background-repeat: no-repeat;
+                background-origin: content-box;
                 background-color: #FFFFFF;
             }}
             """
